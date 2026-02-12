@@ -1,0 +1,492 @@
+\documentclass[10pt,aspectratio=169,english]{beamer}
+
+\usepackage{multirow}
+\usepackage{mathpazo}
+\usepackage{natbib}
+\usepackage{setspace}
+\usepackage{tikz}
+\usepackage{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{subcaption}
+\usepackage{ragged2e}
+\usepackage{color, colortbl}
+\usepackage{xcolor}
+\usepackage{mathptmx}
+\usepackage{multirow}
+\usepackage{bbm}
+\usepackage[scale=1.1]{FiraSans}
+
+% Theme, color and font
+% \usetheme{focus}
+\usetheme{Singapore}
+\usecolortheme{seagull}
+% \usefonttheme{professionalfonts}
+\beamertemplatenavigationsymbolsempty
+\setbeamertemplate{frametitle}[default][left]
+
+% Bibliography
+\urlstyle{same}
+% \addbibresource{references.bib}
+\bibliographystyle{apa-good}
+
+% Custom bibliography item
+\setbeamertemplate{bibliography item}[triangle]
+
+\setbeamerfont{title}{size=\huge, shape=\scshape\bfseries}
+\setbeamerfont{subtitle}{size=\Large, shape=\scshape, parent=structure}
+\setbeamerfont{author}{size=\Large, shape=\scshape}
+
+\setbeamerfont{institute}{size=\large, shape=\scshape}
+\setbeamerfont{date}{size=\large, shape=\scshape}
+
+\setbeamerfont{sectiontitle}{size=\huge, series=\scshape\bfseries}
+\setbeamerfont{frametitle}{size=\Large, family=\bfseries, shape=\scshape}
+
+\setbeamerfont{footline}{size=\scriptsize}
+
+\setbeamerfont{focusframe}{size=\huge, shape=\scshape}
+
+\setbeamerfont{description item}{shape=\bfseries}
+
+\setbeamerfont{caption name}{shape=\bfseries}
+
+\setbeamerfont{bibliography item}{size=\small, shape=\scshape}
+\setbeamerfont{bibliography entry author}{size=\small, shape=\scshape}
+\setbeamerfont{bibliography entry title}{size=\small, series=\scshape\bfseries}
+\setbeamerfont{bibliography entry location}{size=\small, shape=\scshape\normalfont}
+\setbeamerfont{bibliography entry note}{size=\small, shape=\scshape\normalfont}
+
+% Colors
+\definecolor{urlcolor}{rgb}{0,.145,.698}
+\definecolor{linkcolor}{rgb}{0,0,0}
+\definecolor{citecolor}{rgb}{.12,.54,.11}
+\definecolor{emphRed}{RGB}{229, 80, 57}
+
+% Graphics path
+% \graphicspath{../../figures/}
+
+% Custom commands
+\newcommand{\emphRed}[1]{\textcolor{emphRed}{#1}}
+
+% Hyperref setup
+\hypersetup{
+	breaklinks=true,  % so long urls are correctly broken across lines
+		colorlinks=true,
+		urlcolor=urlcolor,
+		linkcolor=linkcolor,
+		citecolor=citecolor,
+}
+
+% Colors for table
+\newcommand{\blue}[1]{\textcolor{blue}{#1}}
+
+%:Title elements
+\title{Are Acquisitions Intended for Specialization or Diversification? \\ {\LARGE Evidence from the Videogame Industry}}
+\subtitle{VII Alumni Workshop}
+\author[Felipe Del Canto]{Felipe Del Canto}
+\institute[]{Harvard University}
+\date{December 22, 2025}
+
+%:Document
+\begin{document}
+
+%:Title
+\frame[plain]{\titlepage}
+
+% \section{Motivation}
+
+% \begin{frame}{Consumer Welfare and Product Variety}
+% 	\begin{itemize}
+% 		\item Relevant questions focus around understanding the welfare effects of\vspace{0.5ex}
+% 			\begin{itemize}
+% 				\item Mergers and acquisitions.\vspace{0.5ex}
+% 				\item Entry and exit.\vspace{0.5ex}
+% 				\item Policy changes.
+% 			\end{itemize}
+% 		\vfill
+		
+% 		\item This entails understanding the (equilibrium) responses of:\vspace{0.5ex}
+% 			\begin{enumerate}
+% 				\item Prices.\vspace{0.5ex}
+% 				\item Number of products.\vspace{0.5ex}
+% 				\item Product variety (e.g., quality).
+% 			\end{enumerate}
+% 		\vfill
+
+% 		\item I will focus on the effects of vertical integration (VI) on product variety.
+% 	\end{itemize}
+% \end{frame}
+
+% \begin{frame}{How can VI impact Product Variety?} \hypertarget{motivation:VI-and-product-composition}{}
+% 	\begin{itemize}
+% 		\item Product variety can have two dimensions:\vspace{0.5ex}
+% 			\begin{enumerate}
+% 				\item Vertical (e.g., quality).\vspace{0.5ex}
+% 				\item Horizontal (e.g., product characteristics).
+% 			\end{enumerate}
+% 		\vfill
+
+% 		\item VI may affect the vertical dimension through investment.\vspace{0.5ex}
+% 			\begin{itemize}
+% 				\item Integration can lead to more investment (e.g. alleviating the hold-up problem).\vspace{0.5ex}
+% 				\item But can also reduce incentives to invest \citep[see][]{Whinston2003}.\vspace{0.5ex}
+% 				\item On top, VI can change investment decisions of competitors in equilibrium.
+% 			\end{itemize}
+% 		\vfill
+
+% 		\item VI can affect horizontal dimensions through acquired firm choices.\vspace{0.5ex}
+% 			\begin{itemize}
+% 				\item Integration can happen in different locations in characteristic space.\vspace{0.5ex}
+% 				\item Diversification/specialization $\Rightarrow$ different product offerings in equilibrium.\vspace{1ex}
+				
+% 				\hspace{-2ex}\hyperlink{intuition-characteristic-space}{\beamerbutton{Graphical intuition}}
+% 			\end{itemize}
+% 	\end{itemize}
+% \end{frame}
+
+\begin{frame}{This project}
+	\begin{enumerate}
+		\item \textbf{Today:} Analyze whether firms diversify/specialize when integrating.\vspace{0.5ex}
+			\begin{itemize}
+				\item In the context of the videogame industry: where publishers acquire developers.\vspace{0.5ex}
+				\item Specifically, the market for (digital) PC games on Steam.\vspace{0.5ex}
+				\item For now, focus on 25 major acquisitions between 2007 and 2024.\vspace{0.5ex}
+				\item To measure specialization, focus on the genre of games.
+			\end{itemize}
+		\vfill
+
+		\item \textbf{Next steps:} Study how integration impacts equilibrium product variety.\vspace{0.5ex}
+			\begin{itemize}
+				\item Build a structural model of vertical integration.\vspace{0.5ex}
+				\item In the model, upstream firms are highly specialized single-product firms.\vspace{0.5ex}
+				\item The distribution of characteristics depends on the identity of acquired firms.
+			\end{itemize}
+		% \vfill
+
+		% \item Study the characteristics distribution across different counterfactuals.\vspace{0.5ex}
+		% 	\begin{itemize}
+		% 		\item Banning vertical integration.\vspace{0.5ex}
+		% 		\item Socially optimal integration strategies.
+		% 	\end{itemize}
+	\end{enumerate}
+\end{frame}
+
+% \begin{frame}{Literature review}
+% 	\begin{itemize}
+% 		\item Endogenous product choice.\vspace{1ex}
+% 			\begin{itemize}
+% 				\item \citet{Fan2013,MazzeoEtAl2018,Wollmann2018,FanYang2020,Sullivan2020,BerryWaldfogel2001}.
+% 			\end{itemize}
+% 		\vfill
+
+% 		\item Vertically integrated markets/Exclusive agreements.\vspace{1ex}
+% 			\begin{itemize}
+% 				\item \citet{Chen2007,ConlonMortimer2013,Lee2013,Asker2016,CrawfordEtAl2018}.
+% 			\end{itemize}
+% 		\vfill
+
+% 		\item Videogame industry.\vspace{1ex}
+% 			\begin{itemize}
+% 				\item \citet{Nair2007,Lee2013,GilWarzynski2015,RusakovKretschmer2024,ArgyresEtAl2025}.
+% 			\end{itemize}
+% 	\end{itemize}
+% \end{frame}
+
+% \section{Industry Details}
+
+% \begin{frame}{The videogame industry}
+% 	\begin{itemize}
+% 		\item The market for videogames is sizable.\vspace{0.5ex}
+% 			\begin{itemize}
+% 				\item Global revenues of $\sim$183 billion USD in 2024, $>50\%$ from mobile (Newzoo, 2024).\vspace{0.5ex}
+% 				\item Digital games have become the norm (especially on PC).\vspace{1ex}
+% 			\end{itemize}
+% 		\vfill
+
+% 		\item Three main agents:\vspace{0.5ex}
+% 			\begin{itemize}
+% 				\item \textbf{Developers}: Create videogames.\vspace{0.5ex}
+% 				\item \textbf{Publishers}: Finance, provide game testing services, and distribute the game.\vspace{0.5ex}
+% 				\item \textbf{Stores}: Sell games to consumers (e.g., Steam).
+% 			\end{itemize}
+% 		\vfill
+
+% 		\item Vertical integration happens when publishers acquire developers.\vspace{0.5ex}
+% 			\begin{itemize}
+% 				\item The industry has seen a large number of acquisitions.\vspace{0.5ex}
+% 				\item Mostly due to increases in game development costs.
+% 			\end{itemize}
+% 	\end{itemize}
+% \end{frame}
+
+% \begin{frame}{Why This is a Good Setting}
+% 	\begin{itemize}
+% 		\item Studios are highly specialized single-product firms.\vspace{0.5ex}
+% 			\begin{itemize}
+% 				\item Studios, in general, develop one game at a time and within a specific genre.\vspace{0.5ex}
+% 				\item Development cycles last multiple years.
+% 			\end{itemize}
+% 		\vfill
+
+% 		\item Developers contract with only one publisher, even without integration.\vspace{0.5ex}
+% 			\begin{itemize}
+% 				\item Foreclosure incentives in this case might only work through talent retention.
+% 			\end{itemize}
+% 		\vfill
+
+% 		\item Contracts between developers and publishers are fairly homogeneous.\vspace{0.5ex}
+% 			\begin{itemize}
+% 				\item Publishers provide the same services in general.\vspace{0.5ex}
+% 				\item Funding: milestone payments and revenue sharing \citep{GilWarzynski2015}. 
+% 			\end{itemize}
+% 	\end{itemize}
+% \end{frame}
+
+% \begin{frame}{Steam and Valve}
+% 	\begin{itemize}
+% 		\item Steam is the largest digital distribution platform for PC games.\vspace{0.5ex}
+% 			\begin{itemize}
+% 				\item Launched in 2003 by Valve Corporation.\vspace{0.5ex}
+% 				\item Over 180 million (average) monthly active users in 2024 (Epyllion, 2025).\vspace{0.5ex}
+% 				\item Estimates suggest its market share in 2025 is more than 70\% (in revenue terms).
+% 			\end{itemize}
+% 		\vfill
+
+% 		\item Steam has a fixed royalty rate of 30\% on game sales.\vspace{0.5ex}
+% 			\begin{itemize}
+% 				\item However, there is no fee for launching games on Steam.
+% 			\end{itemize}
+% 		\vfill
+
+% 		\item Valve is also a developer/publisher.\vspace{0.5ex}
+% 			\begin{itemize}
+% 				\item Owns popular game franchises such as Half-Life, Counter-Strike, and Dota.\vspace{0.5ex}
+% 				\item However, revenues from Steam come mostly from third-parties.\vspace{0.5ex}
+% 				\item Thus, scope for strategic behavior seems limited.
+% 			\end{itemize}
+% 	\end{itemize}
+% \end{frame}
+
+% \section{Data}
+
+% \begin{frame}{\textbf{Data: Overview}}
+% 	\begin{itemize}
+% 		\item Dataset features the universe of videogames in the Steam store.\vspace{0.5ex}
+% 			\begin{itemize}
+% 				\item A total of $\sim$106,000 games.\vspace{0.5ex}
+% 				\item Will only consider those launched between 2007 and 2025 (104,575 games).
+% 			\end{itemize}
+% 		\vfill
+		
+% 		\item For each game: developer(s) and publisher(s), release date and genre.\vspace{0.5ex}
+% 			\begin{itemize}
+% 				\item Among others (e.g., prices, estimated sales, reviews).
+% 			\end{itemize}
+% 		\vfill
+
+% 		\item For today, use genre as horizontal characteristic.\vspace{0.5ex}
+% 			\begin{itemize}
+% 				\item Games are associated with one or more genres.\vspace{0.5ex}
+% 				\item The dataset features 33 different genres.
+% 			\end{itemize}
+% 	\end{itemize}
+% \end{frame}
+
+\begin{frame}{\textbf{Large Acquisitions of Specialized Developers}} \hypertarget{data:acquisitions}{} 
+	\vspace{1.5ex}
+	\begin{figure}[H]
+		\centering
+		\begin{subfigure}{0.495\textwidth}
+			\includegraphics[width=\textwidth]{../../figures/motivating facts/acquisitions-timeline-avgValue.pdf}
+			\caption{Acquisition value (billions of 2024 USD)}
+		\end{subfigure} \hfill
+		\begin{subfigure}{0.495\textwidth}
+			\includegraphics[width=\textwidth]{../../figures/genre distribution/developer-publisher-genre-distribution-histogram-inSample.pdf}
+			\caption{Genre distribution.}
+		\end{subfigure}
+	\end{figure}
+\end{frame}
+
+% \begin{frame}{Developers are more Specialized than Publishers} \hypertarget{data:developer-publisher-specialization}{}
+% 	\begin{figure}[H]
+% 		\centering
+% 		\begin{subfigure}{0.495\textwidth}
+% 			\includegraphics[width=\textwidth]{../../figures/genre distribution/developer-publisher-genre-distribution-histogram.pdf}
+% 			\caption{Full sample (with at least 4 games).}
+% 		\end{subfigure} \hfill
+% 		\begin{subfigure}{0.495\textwidth}
+% 		\end{subfigure}
+% 	\end{figure}
+
+	% \quad \hyperlink{appendix:developer-summary-statistics}{\beamerbutton{Developers summary statistics}} \hyperlink{appendix:publisher-summary-statistics}{\beamerbutton{Publishers summary statistics}}
+% \end{frame}
+
+% \section{Results}
+
+\begin{frame}{A measure of specialization/diversification}
+	\begin{columns}
+		\begin{column}{0.35\textwidth}
+			Define the ``genre portfolio'' of $i$ as the vector $p_{i}$ with 
+				$$ p_{ig} = \frac{\text{games of $i$ in genre $g$}}{\text{games of $i$}}$$
+			\vspace{2ex}
+				
+			For publisher $p$ and developer $d$ define their similarity as
+				$$ s_{pd} = \frac{p_{p} \cdot p_{d}}{||p_{p}|| \cdot ||p_{d}||} $$
+			
+			$\uparrow s_{pd}$ $\Rightarrow$ more specialization.
+		\end{column}
+		\onslide<2->{
+		\begin{column}{0.65\textwidth}
+			\begin{figure}[H]
+				\centering
+				\vspace{1.5ex}
+				\includegraphics[width=\textwidth]{../../figures/specializations/genre_similarity_timeline.pdf}
+			\end{figure}
+		\end{column}
+		}
+	\end{columns}
+\end{frame}
+
+% \begin{frame}{Overall, more specialization than diversification}
+% 	\begin{figure}[H]
+% 		\centering
+% 		\vspace{1.5ex}
+% 		\includegraphics[width=0.7\textwidth]{../../figures/specializations/genre_similarity_timeline.pdf}
+% 	\end{figure}
+% \end{frame}
+
+% \begin{frame}{Determinants of specialization}
+% 	\begin{itemize}
+% 		\item Which features of the market predict specialization?
+% 		\vfill
+
+% 		\item In terms to the publisher's portfolio, I test two competing hypotheses:\vspace{0.5ex}
+% 			\begin{enumerate}
+% 				\item (``Learning-by-doing'') More games in a genre $\Rightarrow$ more specialization.\vspace{0.5ex}
+% 				\item (Cannibalization) More games in a genre $\Rightarrow$ more diversification.
+% 			\end{enumerate}
+% 		\vfill
+
+% 		\item For market conditions, I test if more crowded genres predict diversification.\vspace{0.5ex}
+% 			\begin{itemize}
+% 				\item More competitive genre $\Rightarrow$ should avoid acquiring a developer specialized in it.
+% 			\end{itemize}
+% 	\end{itemize}
+% \end{frame}
+
+\begin{frame}{Determinants of Specializations}
+	\begin{columns}
+		\begin{column}{0.4\textwidth}
+			Which features of the market predict whether publishers specialize when integrating?\vspace{5ex}
+
+			Regarding the publisher's portfolio, test two hypotheses:\hspace{-1ex}\vspace{0.5ex}
+			\begin{enumerate}
+				\item Having more games in a genre $\Rightarrow$ specialization.\vspace{0.5ex}
+				\item Competitors have more games in a genre $\Rightarrow$  diversification.
+			\end{enumerate} 
+		\end{column}
+		\onslide<2->{
+		\begin{column}{0.6\textwidth}
+			\begin{table}
+        \centering
+		\resizebox{\textwidth}{!}{
+        \begin{tabular}{lcc}
+                \hline\hline
+                \\[-1ex]
+                        &       \multicolumn{2}{c}{Specialization ($\mathbbm{1}\{s_{pd} > 0.5$\})}              \\[0.5ex] \cline{2-3}
+                \\[-1ex]
+            &   (1)     & (2)  \\[0.5ex] \hline
+             \\[-1ex]
+\# of games by publisher & 0.010$^{***}$ & 0.012$^{***}$  \\[0.25ex]
+ in top genre of developer & \footnotesize{(0.002)} & \footnotesize{(0.003)}        \\[1ex]
+\# of games in market & -0.086$^{***}$ & -0.120$^{***}$      \\[0.25ex]
+ in top genre of developer & \footnotesize{(0.023)} & \footnotesize{(0.027)}        \\[1ex]
+                 \hline
+                 \\[-1ex]
+                Acquisition year FE &  & $\checkmark$ \\[1ex]
+Observations  & 21 & 16 \\[1ex]
+                \\[-2ex]
+                \hline \hline
+                \\[-1ex]
+                 \multicolumn{3}{l}{$^{***}$ $p<0.01$, $^{**}$ $p<0.05$, $^{*}$ $p<0.1$.}      
+        \end{tabular}
+		}
+		\end{table}
+		\end{column}
+		}
+	\end{columns}
+\end{frame}
+
+% \begin{frame}{The overall market looks more specialized}
+% 	\begin{figure}[H]
+% 		\centering
+% 		\includegraphics[width=0.7\textwidth]{../../figures/developer distribution/developer-tsne-distribution.pdf}
+% 	\end{figure}
+% \end{frame}
+
+\begin{frame}{Conclusion}
+	\begin{itemize}
+		\item How does vertical integration impact product variety?\vspace{0.5ex}
+			\begin{itemize}
+				\item Specialization/diversification might lead to different equilibrium outcomes.\vspace{0.75ex}
+				\item Understanding this phenomenon is relevant for competition/consumer welfare.
+			\end{itemize}
+		\vfill
+
+		\item In the videogame industry, publishers tend to specialize with acquisitions.
+		\vfill
+
+		\item Specialization is more likely when:\vspace{0.5ex}
+			\begin{enumerate}
+				\item Publishers have more experience in the developer's genre (``learning-by-doing'').\vspace{0.75ex}
+				\item The developer's genre is less crowded (less competition).
+			\end{enumerate}  
+	\end{itemize}
+\end{frame}
+
+\appendix
+
+\begin{frame}[plain,c]
+	\begin{center}
+		\vspace{5ex}
+		\Huge\bf THANK YOU!
+		% Print slide number
+		% \insertframenumber
+	\end{center}
+\end{frame}
+
+\begin{frame}[allowframebreaks, plain]
+	\frametitle{\bf References}
+	\def\newblock{\hskip .11em plus .33em minus .07em}
+	\nocite{*}
+	\bibliography{../../references.bib}
+\end{frame}
+
+\appendix
+
+\section{Appendix: Additional Figures and Tables}
+
+\begin{frame}{Firm Distribution has Different implications \hyperlink{motivation:VI-and-product-composition}{\beamerbutton{Back}}} \hypertarget{intuition-characteristic-space}{} 
+	\begin{figure}
+		\begin{subfigure}{0.495\textwidth}
+			\includegraphics[width=\textwidth]{../../figures/specialization intuition/distribution-diversified.pdf}
+			\caption{Equilibrium with diversification}
+		\end{subfigure} \hfill
+		\begin{subfigure}{0.495\textwidth}
+			\includegraphics[width=\textwidth]{../../figures/specialization intuition/distribution-specialized.pdf}
+			\caption{Equilibrium with specialization}
+		\end{subfigure} 
+	\end{figure}
+\end{frame}
+
+\begin{frame}{\textbf{Developers: Summary statistics} \hyperlink{data:developer-publisher-specialization}{\beamerbutton{Back to data}}} \hypertarget{appendix:developer-summary-statistics}{}
+	\input{../../tables/summary statistics/developer_summary_statistics.tex}
+\end{frame}
+
+\begin{frame}{\textbf{Publishers: Summary statistics} \hyperlink{data:developer-publisher-specialization}{\beamerbutton{Back to data}}} \hypertarget{appendix:publisher-summary-statistics}{}
+	\input{../../tables/summary statistics/publisher_summary_statistics.tex}
+\end{frame}
+
+\end{document}
+
