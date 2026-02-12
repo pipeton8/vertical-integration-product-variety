@@ -1,0 +1,413 @@
+\documentclass[10pt,aspectratio=169,english]{beamer}
+
+\usepackage{multirow}
+\usepackage{mathpazo}
+\usepackage{natbib}
+\usepackage{setspace}
+\usepackage{tikz}
+\usepackage{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{subcaption}
+\usepackage{ragged2e}
+\usepackage{color, colortbl}
+\usepackage{xcolor}
+\usepackage{mathptmx}
+\usepackage{multirow}
+\usepackage[scale=1.1]{FiraSans}
+
+% Theme, color and font
+% \usetheme{focus}
+\usetheme{Singapore}
+\usecolortheme{seagull}
+% \usefonttheme{professionalfonts}
+\beamertemplatenavigationsymbolsempty
+\setbeamertemplate{frametitle}[default][left]
+
+% Bibliography
+\urlstyle{same}
+% \addbibresource{references.bib}
+\bibliographystyle{apa-good}
+
+% Custom bibliography item
+\setbeamertemplate{bibliography item}[triangle]
+
+\setbeamerfont{title}{size=\huge, shape=\scshape\bfseries}
+\setbeamerfont{subtitle}{size=\Large, shape=\scshape, parent=structure}
+\setbeamerfont{author}{size=\Large, shape=\scshape}
+
+\setbeamerfont{institute}{size=\large, shape=\scshape}
+\setbeamerfont{date}{size=\large, shape=\scshape}
+
+\setbeamerfont{sectiontitle}{size=\huge, series=\scshape\bfseries}
+\setbeamerfont{frametitle}{size=\Large, shape=\scshape}
+
+\setbeamerfont{footline}{size=\scriptsize}
+
+\setbeamerfont{focusframe}{size=\huge, shape=\scshape}
+
+\setbeamerfont{description item}{shape=\bfseries}
+
+\setbeamerfont{caption name}{shape=\bfseries}
+
+\setbeamerfont{bibliography item}{size=\small, shape=\scshape}
+\setbeamerfont{bibliography entry author}{size=\small, shape=\scshape}
+\setbeamerfont{bibliography entry title}{size=\small, series=\scshape\bfseries}
+\setbeamerfont{bibliography entry location}{size=\small, shape=\scshape\normalfont}
+\setbeamerfont{bibliography entry note}{size=\small, shape=\scshape\normalfont}
+
+% Colors
+\definecolor{urlcolor}{rgb}{0,.145,.698}
+\definecolor{linkcolor}{rgb}{0,0,0}
+\definecolor{citecolor}{rgb}{.12,.54,.11}
+\definecolor{emphRed}{RGB}{229, 80, 57}
+
+% Graphics path
+% \graphicspath{../../figures/}
+
+% Custom commands
+\newcommand{\emphRed}[1]{\textcolor{emphRed}{#1}}
+
+% Hyperref setup
+\hypersetup{
+	breaklinks=true,  % so long urls are correctly broken across lines
+		colorlinks=true,
+		urlcolor=urlcolor,
+		linkcolor=linkcolor,
+		citecolor=citecolor,
+}
+
+% Colors for table
+\newcommand{\blue}[1]{\textcolor{blue}{#1}}
+
+%:Title elements
+\title{Product composition in \\ vertically integrated markets}
+\subtitle{IO Summer Meetings 2025}
+\author[Felipe Del Canto]{Felipe Del Canto}
+\institute[]{Harvard University}
+\date{August 29, 2025}
+
+%:Document
+\begin{document}
+
+%:Title
+\frame[plain]{\titlepage}
+
+\section{Motivation and Research Question}
+
+\begin{frame}{\textbf{Motivation and Research Question}}
+	\begin{itemize}
+		\item Consumer welfare depends on prices but also on product offerings.\vspace{0.5ex}
+			\begin{itemize}
+				\item Through variety (\# of products).\vspace{1ex}
+				\item Or product composition (e.g, quality).
+			\end{itemize}
+		\vfill
+
+		\item Vertical integration (VI) can shift product composition.\vspace{0.5ex}
+			\begin{itemize}
+				\item Through endogenous decision of which firms to acquire.\vspace{1ex}
+				\item By aligning investment incentives for quality.\vspace{1ex}
+				\item Or through foreclosure of rivals.
+			\end{itemize}
+		\vfill
+
+		\item Goal: Understand the welfare effects of VI through these channels.\vspace{0.5ex}
+			\begin{itemize}
+				\item In the market for (digital) PC videogames.\vspace{1ex}
+				\item Focus on publisher-developer acquisitions.
+			\end{itemize}
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{\textbf{Literature review}}
+	\begin{itemize}
+		\item Endogenous product choice.\vspace{1ex}
+			\begin{itemize}
+				\item \citet{Fan2013,MazzeoEtAl2018,Wollmann2018,FanYang2020,Sullivan2020,BerryWaldfogel2001}.
+			\end{itemize}
+		\vfill
+
+		\item Vertically integrated markets/Exclusive agreements.\vspace{1ex}
+			\begin{itemize}
+				\item \citet{Chen2007,ConlonMortimer2013,Lee2013,Asker2016,CrawfordEtAl2018}.
+			\end{itemize}
+		\vfill
+
+		\item Videogame industry.\vspace{1ex}
+			\begin{itemize}
+				\item \citet{Nair2007,Lee2013,GilWarzynski2015,RusakovKretschmer2024,ArgyresEtAl2025}.
+			\end{itemize}
+	\end{itemize}
+\end{frame}
+
+\section{Mechanisms and a simple model}
+
+\begin{frame}{\textbf{Product variety can change horizontally or vertically}}
+	\begin{itemize}
+		\item VI can change product offerings directly through quality investment.\vspace{1ex}
+			\begin{itemize}
+				\item Integrated firms might have higher returns to investment/better coordination.\vspace{1ex}
+				\item But might change investment incentives for competitors or future products.
+			\end{itemize}
+		\vfill
+
+		\item Horizontal differentiation might be impacted in equilibrium.\vspace{1ex}
+			\begin{itemize}
+				\item Integration can happen in different locations in characteristic space.\vspace{1ex}
+				\item Diversification/specialization $\Rightarrow$ different product offerings in equilibrium.
+			\end{itemize}
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{\textbf{A simple model: Agents and timing}}
+	\begin{itemize}
+		\item Consider a market with one publisher $P$ and two developers/titles $d = i,j$.\vspace{0.5ex}
+			\begin{itemize}
+				\item Each $d$ characterized by marginal cost $c_{d} = 0$ and genre $g(d)$.\vspace{1ex}
+				\item Assume $i$ is already integrated with $P$.
+			\end{itemize}
+		\vfill
+
+		\item Agents play the following game:\vspace{0.5ex}
+			\begin{itemize}
+				\item \textbf{Stage 1:} $P$ posts a TIOLI acquisition offer to $j$ with transfer $T$.\vspace{1ex}
+				\item \textbf{Stage 2:} $j$ accepts or declines and controlling agents invest in quality.\vspace{0.5ex}
+					\begin{itemize}
+						\item If $j$ accepts, they integrate ($\mathbf{I}$), relinquishing control.\vspace{1ex}
+						\item If $j$ declines, they self-publish ($\mathbf{S}$) and retain control.\vspace{1ex}
+					\end{itemize}
+				\item \textbf{Stage 3:} Controlling agents set prices simultaneously and consumption occurs.
+			\end{itemize}
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{\textbf{A simple model: Investment and consumer demand}}
+	\begin{itemize}
+		\item Investment in quality follows technology
+			$$ a_{i} = \theta_{s}x_{i}, \qquad C_{s}(x_{i}) = \frac{1}{2}x_{i}^{2} $$
+			where $s$ is the governance structure and $\theta_{\mathbf{I}} \geq \theta_{\mathbf{S}}$ = 0.
+		\vfill
+
+		\item Assume demands for both games are linear:
+			\begin{align*}
+				q_d &= \underbrace{A_{g(d)} + \beta_{a} a_d}_{:= t_{d}} - \beta_{p}\,p_d + \sigma_{g(d),g(d')}\, p_{d'},
+			\end{align*}\vspace{-2ex}
+			\begin{itemize}
+				\item $A_{g}$ is a genre-specific demand shifter.\vspace{1ex}
+				\item $\sigma_{g(i),g(j)}$ is a (symmetric) cross- or within-genre substitution parameter.\vspace{1ex}
+				\item Assume $\sigma_{g,g} = \sigma_{w}$ and $\sigma_{g,g'} = \sigma_{c}$ for $g \neq g'$.
+			\end{itemize}
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{\textbf{A simple model: Predictions}} \hypertarget{model:equilibrium}{}
+	\begin{itemize}
+		\item Equilibrium prices are different depending on governance. \hyperlink{equilibrium:prices}{\beamerbutton{Prices}}\vspace{0.5ex}
+			\begin{itemize}
+				\item \textit{Ceteris paribus}, integration increases prices.\vspace{1ex}
+				\item Prices are higher for high quality games.
+			\end{itemize}
+		\vfill
+
+		\item Given pricing schedules, quality differs by governance. \hyperlink{equilibrium:investment}{\beamerbutton{Investment}}\vspace{0.5ex}
+			\begin{itemize}
+				\item Integration increases quality.\vspace{1ex}
+				\item Quality is a strategic complement and decreases with substitutability.
+			\end{itemize}
+		\vfill
+
+		\item For a publisher, integration is more profitable when substitutability is low.\vspace{0.5ex}
+			\begin{itemize}
+				\item In particular, $\sigma_{c} < \sigma_{w}$ $\Rightarrow$ diversification more likely.\vspace{1ex}
+				\item But, with high $A_{g(i)}$ specialization may be preferred.
+			\end{itemize}
+	\end{itemize}
+\end{frame}
+
+\section{Data}
+
+\begin{frame}{\textbf{Data: Overview}}
+	\begin{itemize}
+		\item Dataset features all videogames currently in the Steam store.\vspace{0.5ex}
+			\begin{itemize}
+				\item A total of $\sim$106,000 games.\vspace{1ex}
+				\item Will only consider those launched between 2007 and 2025 (104,575 games).
+			\end{itemize}
+		\vfill
+		
+		\item Includes developer(s) and publisher(s), release date and genre.\vspace{0.5ex}
+			\begin{itemize}
+				\item Among others; More information (such as prices or sales) is also available.
+			\end{itemize}
+		\vfill
+
+		\item Characteristics to focus for today.\vspace{0.5ex}
+			\begin{itemize}
+				\item Genre as horizontal characteristic.\vspace{1ex}
+				\item Share of positive reviews as vertical characteristic.
+			\end{itemize}
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{\textbf{Data: Acquisitions by publishers}} \hypertarget{data:acquisitions}{} 
+	\begin{itemize}
+		\item To test the predictions of the model, I will focus on 25 acquisition events.\vspace{0.5ex}
+			\begin{itemize}
+				\item Acquisitions are large and spaced in time. \hyperlink{acquisitions-timeline}{\beamerbutton{Timeline}}\vspace{1ex}
+				\item Publishers and developers are relevant players. \hyperlink{developer-summary-statistics}{\beamerbutton{Developers}} \hyperlink{publisher-summary-statistics}{\beamerbutton{Publishers}}\vspace{1ex}
+			\end{itemize}
+		\vfill
+
+		\item Using these acquisitions:\vspace{0.5ex}
+			\begin{itemize}
+				\item Verify if they improved studio/game quality after acquisition.\vspace{1ex}
+				\item Classify them between specialization and diversification.\vspace{1ex}
+				\item Study relationship between acquisition ``type'' and different genres.\vspace{1ex}
+			\end{itemize}
+	\end{itemize}
+\end{frame}
+
+\section{Preliminary Results}
+
+\begin{frame}{\textbf{Quality effects are ambiguous after acquisition} \hyperlink{quality-examples}{\beamerbutton{Examples}}} \hypertarget{results-quality}{}
+	\input{../../tables/quality_results.tex}
+\end{frame}
+
+\begin{frame}{\textbf{Less specializations when genre is more crowded}}
+	\input{../../tables/specializations_crowdedness.tex}
+\end{frame}
+
+\begin{frame}{\textbf{More specializations when existing portfolio is larger}}
+	\input{../../tables/specializations_portfolio_size.tex}
+\end{frame}
+
+
+
+\appendix
+
+\begin{frame}[plain,c]
+	\begin{center}
+		\vspace{5ex}
+		\Huge\bf THANK YOU!
+		% Print slide number
+		% \insertframenumber
+	\end{center}
+\end{frame}
+
+
+\begin{frame}[allowframebreaks, plain]
+	\frametitle{\bf References}
+	\def\newblock{\hskip .11em plus .33em minus .07em}
+	\bibliography{../../references.bib}
+\end{frame}
+
+\appendix
+
+\section{Appendix: Model results}
+
+\begin{frame}{\textbf{Model: Equilibrium prices} \hyperlink{model:equilibrium}{\beamerbutton{Back to equilibrium}}} \hypertarget{equilibrium:prices}{}
+	\begin{itemize}
+		\item If $j$ self-publishes ($\mathbf{S}$):
+			\begin{align*}
+				p_{i}^{\mathbf{S}} &= \frac{2\beta_{p}t_{i} + \sigma t_{j}}{4\beta_{p}^{2} - \sigma^{2}} \onslide<2->{\blue{+ \frac{2\beta_{p}\Delta_{i}}{4\beta_{p}^{2} - \sigma^{2}}}} \\
+				p_{j}^{\mathbf{S}} &= \frac{2\beta_{p}t_{j} + \sigma t_{i}}{4\beta_{p}^{2} - \sigma^{2}} \onslide<2->{\blue{+ \frac{\sigma\Delta_{i}}{4\beta_{p}^{2} - \sigma^{2}}}}
+			\end{align*}
+		\vfill
+
+		\item If $j$ integrates ($\mathbf{I}$):
+			\begin{align*}
+				p_{i}^{\mathbf{I}} &= \frac{\beta_{p}t_{i} + \sigma t_{j}}{2(\beta_{p}^{2} - \sigma^{2})} \onslide<2->{\blue{+ \frac{\beta^{P}\Delta_{i} + \sigma\Delta_{j}}{2(\beta_{p}^{2} - \sigma^{2})}}} \\
+				p_{j}^{\mathbf{I}} &= \frac{\beta_{p}t_{j} + \sigma t_{i}}{2(\beta_{p}^{2} - \sigma^{2})} \onslide<2->{\blue{+ \frac{\beta^{P}\Delta_{j} + \sigma\Delta_{i}}{2(\beta_{p}^{2} - \sigma^{2})}}}
+			\end{align*}
+		\end{itemize}
+	\end{frame}
+
+\begin{frame}{\textbf{Model: Equilibrium investment} \hyperlink{model:equilibrium}{\beamerbutton{Back to equilibrium}}} \hypertarget{equilibrium:investment}{}
+	\begin{itemize}
+		\item If $j$ self-publishes ($\mathbf{S}$):\vspace{0.5ex}
+			\begin{align*}
+				x_{i}^{\mathbf{S}} &= \frac{\theta_{\mathbf{I}}\beta_{a}\mu_{\mathbf{S}}(2\beta_{p}A_{g(i)} + \sigma A_{g(j)})}{1 - 2(\theta_{\mathbf{I}}\beta_{a})^{2}\beta_{p}\mu_{\mathbf{S}}}, \qquad \mu_{\mathbf{S}} := \frac{4\beta_{p}^{2}}{4\beta_{p}^{2} - \sigma^{2}} \\
+				x_{j}^{\mathbf{S}} &= 0
+			\end{align*}
+		\vfill
+
+		\item If $j$ integrates ($\mathbf{I}$):\vspace{0.5ex}
+			\begin{align*}
+				x_{i}^{\mathbf{I}} &= \frac{\theta_{\mathbf{I}}\beta_{a}\mu_{\mathbf{I}}(\beta_{p}A_{g(i)} + \sigma t_{j})}{1 - (\theta_{\mathbf{I}}\beta_{a})^{2}\beta_{p}\mu_{\mathbf{I}}},\qquad \mu_{\mathbf{I}} := \frac{1}{2(\beta_{p}^{2} - \sigma^{2})} \\
+				x_{j}^{\mathbf{I}} &= \frac{\theta_{\mathbf{I}}\beta_{a}\mu_{\mathbf{I}}(\beta_{p}A_{g(j)} + \sigma t_{i})}{1 - (\theta_{\mathbf{I}}\beta_{a})^{2}\beta_{p}\mu_{\mathbf{I}}}
+			\end{align*}
+		\end{itemize}
+\end{frame}
+
+\begin{frame}{\textbf{Model: Investment comparative statics} \hyperlink{model:equilibrium}{\beamerbutton{Back to equilibrium}}} \hypertarget{equilibrium:investment-comparative-statics}{}
+	\begin{itemize}
+		\item It can be shown that if $\sigma > 0$
+				$$ \mu_{\mathbf{I}} > 2\mu_{\mathbf{S}}$$
+		\vfill
+
+		\item This implies that,
+				$$ \frac{x_{i}^{\mathbf{I}}}{x_{i}^{\mathbf{S}}} = \frac{\mu_{\mathbf{I}}}{2\mu_{\mathbf{S}}} \cdot \frac{\beta_{p}A_{g(i)} + \sigma t_{j}}{\beta_{p}A_{g(i)} + \frac{1}{2}\sigma A_{g(j)}} \cdot \frac{1 - 2(\theta_{\mathbf{I}}\beta_{a})^{2}\beta_{p}\mu_{\mathbf{S}}}{1 - (\theta_{\mathbf{I}}\beta_{a})^{2}\beta_{p}\mu_{\mathbf{I}}} > 1 $$
+		\end{itemize}
+\end{frame}
+
+\section{Appendix: Additional Figures and Tables}
+
+\begin{frame}[plain]{\textbf{Acquisitions in the videogame industry} \hyperlink{data:acquisitions}{\beamerbutton{Back to data}}} \hypertarget{acquisitions-timeline}{} 
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.7\textwidth]{../../figures/acquisitions_timeline.pdf}
+	\end{figure}
+\end{frame}
+
+\begin{frame}{\textbf{Developers: Summary statistics} \hyperlink{data:acquisitions}{\beamerbutton{Back to data}}} \hypertarget{developer-summary-statistics}{}
+	\input{../../tables/developer_summary_statistics.tex}
+\end{frame}
+
+\begin{frame}{\textbf{Publishers: Summary statistics} \hyperlink{data:acquisitions}{\beamerbutton{Back to data}}} \hypertarget{publisher-summary-statistics}{}
+	\input{../../tables/publisher_summary_statistics.tex}
+\end{frame}
+
+\begin{frame}{\textbf{Quality evolution is ambiguous} \hyperlink{results-quality}{\beamerbutton{Back to results}}} \hypertarget{quality-examples}{}
+	\begin{figure}
+		\centering
+		\begin{subfigure}{0.475\textwidth}
+			\includegraphics[width=\textwidth]{../../figures/quality_timeline_relic_entertainment.pdf}
+			\caption{Relic Entertainment (SEGA, 2013)}
+		\end{subfigure} \hfill
+		\begin{subfigure}{0.475\textwidth}
+			\includegraphics[width=\textwidth]{../../figures/quality_timeline_croteam.pdf}
+			\caption{Croteam (Devolver Digital, 2020)}
+		\end{subfigure}
+	\end{figure}
+\end{frame}
+
+\begin{frame}{\textbf{Quality evolution is ambiguous} \hyperlink{results-quality}{\beamerbutton{Back to results}}}
+	\begin{figure}
+		\centering
+		\begin{subfigure}{0.475\textwidth}
+			\includegraphics[width=\textwidth]{../../figures/quality_timeline_codemasters.pdf}
+			\caption{Codemasters (Electronic Arts, 2020)}
+		\end{subfigure} \hfill
+		\begin{subfigure}{0.475\textwidth}
+			\includegraphics[width=\textwidth]{../../figures/quality_timeline_big_ant_studios.pdf}
+			\caption{Big Ant Studios (Nacon, 2021)}
+		\end{subfigure}
+	\end{figure}
+\end{frame}
+
+\begin{frame}{\textbf{Quality evolution is ambiguous} \hyperlink{results-quality}{\beamerbutton{Back to results}}}
+	\begin{figure}
+		\begin{subfigure}{0.475\textwidth}
+			\includegraphics[width=\textwidth]{../../figures/quality_timeline_insomniac_games.pdf}
+			\caption{Insomniac Games (Sony, 2019)}
+		\end{subfigure} \hfill
+		\begin{subfigure}{0.475\textwidth}
+			\includegraphics[width=\textwidth]{../../figures/quality_timeline_nerial.pdf}
+			\caption{Nerial (Devolver Digital, 2021)}
+		\end{subfigure}
+	\end{figure}
+\end{frame}
+
+\end{document}
+
