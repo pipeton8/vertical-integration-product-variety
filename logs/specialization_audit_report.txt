@@ -1,12 +1,12 @@
 ================================================================================
 GENRE SPECIALIZATION DATASET - AUDIT REPORT
 ================================================================================
-Generated: 2026-02-12 15:43:09
+Generated: 2026-02-12 15:57:30
 
 VERIFICATION SUMMARY
 --------------------------------------------------------------------------------
-Total verification checks: 18
-Checks passed: 18
+Total verification checks: 27
+Checks passed: 27
 Checks failed: 0
 Warnings issued: 0
 
@@ -65,3 +65,30 @@ DETAILED CHECKS
 
 [PASS] Step 4: Most games have genres
       197,321 games have at least one genre (4 have none)
+
+[PASS] Step 5: No duplicates introduced
+      No duplicates introduced
+
+[PASS] Step 5: High genre vector match rate
+      100.0% of games have genre vectors (197,325/197,325)
+
+[PASS] Step 5: Games after merge
+      197,325 games retained after merge
+
+[PASS] Step 5: No NULL values in genre columns after merge
+      No NULL values
+
+[PASS] Step 6: Developer rows created
+      127,064 developer-game rows created
+
+[PASS] Step 6: No NULL developer IDs
+      No NULL developer IDs
+
+[PASS] Step 6: No NULL years in developer rows
+      No NULL years
+
+[PASS] Step 6: Positive developer IDs
+      All developer IDs are positive (min: 1)
+
+[PASS] Step 6: Duplicates handled
+      Removed 6 duplicate rows

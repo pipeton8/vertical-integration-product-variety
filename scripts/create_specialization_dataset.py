@@ -528,13 +528,208 @@ def load_genre_vectors(genre_path, tracker):
 
 def join_games_genres(games_df, genres_df, tracker):
     """Join games with genre vectors."""
-    # To be implemented in Step 5
-    pass
+    tracker.log_step_start(5, "Join games with genre vectors")
+    
+    # Report counts before merge
+    tracker.logger.info(f"Games dataframe: {len(games_df):,} rows")
+    tracker.logger.info(f"Genre vectors dataframe: {len(genres_df):,} rows")
+    
+    # Perform left join to keep all games (even if no genre data)
+    tracker.logger.info("")
+    tracker.logger.info("Performing merge on game_id...")
+    
+    merged_df = games_df.merge(genres_df, on='game_id', how='left', suffixes=('', '_genre'))
+    
+    tracker.logger.info(f"Merged dataframe: {len(merged_df):,} rows")
+    
+    # Verification: Check for duplicates
+    duplicate_count = len(merged_df) - len(games_df)
+    tracker.add_check(5, "No duplicates introduced",
+                     duplicate_count == 0,
+                     f"No duplicates introduced" if duplicate_count == 0 
+                     else f"{duplicate_count} duplicate rows created")
+    
+    # Identify games in database but not in vectors
+    games_without_genres = merged_df[merged_df['genre_0'].isna()]
+    tracker.logger.info(f"Games without genre vectors: {len(games_without_genres):,}")
+    
+    if len(games_without_genres) > 0:
+        tracker.add_warning(5, f"{len(games_without_genres):,} games have no genre vectors")
+        sample_without = games_without_genres.head(5)
+        tracker.logger.info("  Sample games without genres:")
+        for _, row in sample_without.iterrows():
+            tracker.logger.info(f"    Game {row['game_id']}: {row['title']}")
+    
+    # Identify games in vectors but not in database
+    games_in_db = set(games_df['game_id'])
+    games_in_vectors = set(genres_df['game_id'])
+    only_in_vectors = games_in_vectors - games_in_db
+    
+    tracker.logger.info(f"Games only in vectors (not in database): {len(only_in_vectors):,}")
+    
+    if len(only_in_vectors) > 0:
+        tracker.add_warning(5, f"{len(only_in_vectors):,} games in vectors but not in database")
+        if len(only_in_vectors) <= 10:
+            tracker.logger.info(f"  IDs: {sorted(list(only_in_vectors))}")
+        else:
+            sample_ids = sorted(list(only_in_vectors))[:10]
+            tracker.logger.info(f"  Sample IDs: {sample_ids}...")
+    
+    # Calculate match rate
+    games_with_genres = len(merged_df) - len(games_without_genres)
+    match_rate = games_with_genres / len(merged_df) if len(merged_df) > 0 else 0
+    
+    tracker.add_check(5, "High genre vector match rate",
+                     match_rate >= 0.95,  # Fail if <95% have genres
+                     f"{match_rate*100:.1f}% of games have genre vectors ({games_with_genres:,}/{len(merged_df):,})")
+    
+    # Remove games without genre vectors (we can't use them)
+    tracker.logger.info("")
+    tracker.logger.info("Filtering to games with genre vectors...")
+    merged_df = merged_df[merged_df['genre_0'].notna()].copy()
+    
+    tracker.logger.info(f"After filtering: {len(merged_df):,} games")
+    
+    tracker.add_check(5, "Games after merge",
+                     len(merged_df) > 0,
+                     f"{len(merged_df):,} games retained after merge")
+    
+    # Verify no NULL values in genre columns
+    genre_cols = [col for col in merged_df.columns if col.startswith('genre_')]
+    null_count = merged_df[genre_cols].isnull().sum().sum()
+    
+    tracker.add_check(5, "No NULL values in genre columns after merge",
+                     null_count == 0,
+                     f"No NULL values" if null_count == 0 else f"{null_count} NULL values found")
+    
+    # Sample row check
+    tracker.logger.info("")
+    tracker.logger.info("Sample merged records:")
+    sample = merged_df[merged_df['release_year'].notna()].head(3)
+    
+    for _, row in sample.iterrows():
+        genre_sum = row[genre_cols].sum()
+        tracker.logger.info(f"  Game {row['game_id']}: {row['title']}")
+        tracker.logger.info(f"    Year: {int(row['release_year'])}")
+        tracker.logger.info(f"    Developers: {row['developer_ids']}")
+        tracker.logger.info(f"    Publishers: {row['publisher_ids']}")
+        tracker.logger.info(f"    Total genres: {int(genre_sum)}")
+    
+    # Final statistics
+    tracker.logger.info("")
+    tracker.logger.info("Final merged dataset statistics:")
+    tracker.logger.info(f"  Total games: {len(merged_df):,}")
+    tracker.logger.info(f"  Games with developers: {(merged_df['developer_ids'].apply(lambda x: len(x) > 0)).sum():,}")
+    tracker.logger.info(f"  Games with publishers: {(merged_df['publisher_ids'].apply(lambda x: len(x) > 0)).sum():,}")
+    tracker.logger.info(f"  Games with release year: {merged_df['release_year'].notna().sum():,}")
+    
+    return merged_df
 
 def expand_to_developer_rows(games_genres_df, tracker):
-    """Expand to developer rows (one row per game-developer pair)."""
-    # To be implemented in Step 6
-    pass
+    """
+    Step 6: Expand each game to multiple rows, one per developer
+    
+    Each row will have: game_id, developer_id, release_year, genre_0..genre_230
+    """
+    tracker.logger.info("Expanding to developer rows...")
+    
+    # Filter to games that have developers and release year
+    games_with_devs = games_genres_df[
+        (games_genres_df['developer_ids'].apply(lambda x: isinstance(x, list) and len(x) > 0)) &
+        (games_genres_df['release_year'].notna())
+    ].copy()
+    
+    tracker.logger.info(f"Games with developers and year: {len(games_with_devs):,}")
+    
+    # Explode the developer_ids list
+    tracker.logger.info("Exploding developer_ids list...")
+    expanded = games_with_devs.explode('developer_ids')
+    tracker.logger.info(f"After explosion: {len(expanded):,} rows")
+    
+    # Rename developer_ids to developer_id (now scalar)
+    expanded = expanded.rename(columns={'developer_ids': 'developer_id'})
+    
+    # Select final columns: developer_id, release_year, genre_0..genre_230
+    genre_cols = [f'genre_{i}' for i in range(231)]
+    final_cols = ['game_id', 'developer_id', 'release_year'] + genre_cols
+    developer_rows = expanded[final_cols].copy()
+    
+    # Verification checks
+    tracker.logger.info("")
+    tracker.add_check(
+        6,
+        "Developer rows created",
+        len(developer_rows) > 0,
+        f"{len(developer_rows):,} developer-game rows created"
+    )
+    
+    null_devs = developer_rows['developer_id'].isna().sum()
+    tracker.add_check(
+        6,
+        "No NULL developer IDs",
+        null_devs == 0,
+        f"No NULL developer IDs" if null_devs == 0 else f"Found {null_devs} NULL developer IDs"
+    )
+    
+    null_years = developer_rows['release_year'].isna().sum()
+    tracker.add_check(
+        6,
+        "No NULL years in developer rows",
+        null_years == 0,
+        f"No NULL years" if null_years == 0 else f"Found {null_years} NULL years"
+    )
+    
+    # Check developer ID types and ranges
+    min_dev_id = developer_rows['developer_id'].min()
+    max_dev_id = developer_rows['developer_id'].max()
+    unique_devs = developer_rows['developer_id'].nunique()
+    
+    tracker.logger.info(f"")
+    tracker.logger.info(f"Developer ID range: {min_dev_id} to {max_dev_id}")
+    tracker.logger.info(f"Unique developers: {unique_devs:,}")
+    
+    tracker.add_check(
+        6,
+        "Positive developer IDs",
+        min_dev_id > 0,
+        f"All developer IDs are positive (min: {min_dev_id})"
+    )
+    
+    # Check for duplicates (game_id, developer_id, year)
+    dup_mask = developer_rows.duplicated(subset=['game_id', 'developer_id', 'release_year'], keep=False)
+    dup_count = dup_mask.sum()
+    
+    if dup_count > 0:
+        tracker.logger.info("")
+        tracker.logger.info(f"Found {dup_count} duplicate rows. Investigating...")
+        dup_rows = developer_rows[dup_mask].sort_values(['game_id', 'developer_id', 'release_year'])
+        tracker.logger.info(f"Sample duplicates:")
+        for idx, row in dup_rows.head(6).iterrows():
+            tracker.logger.info(f"  Game {int(row['game_id'])}, Developer {int(row['developer_id'])}, Year {int(row['release_year'])}")
+        
+        # Remove duplicates, keeping first occurrence
+        tracker.logger.info("")
+        tracker.logger.info("Removing duplicate rows (keeping first occurrence)...")
+        developer_rows = developer_rows.drop_duplicates(subset=['game_id', 'developer_id', 'release_year'], keep='first')
+        tracker.logger.info(f"After removing duplicates: {len(developer_rows):,} rows")
+    
+    tracker.add_check(
+        6,
+        "Duplicates handled",
+        True,
+        f"Removed {dup_count} duplicate rows" if dup_count > 0 else "No duplicates found"
+    )
+    
+    # Sample check
+    tracker.logger.info("")
+    tracker.logger.info("Sample developer rows:")
+    sample = developer_rows.head(3)
+    for idx, row in sample.iterrows():
+        genre_count = row[[f'genre_{i}' for i in range(231)]].sum()
+        tracker.logger.info(f"  Game {int(row['game_id'])}, Developer {int(row['developer_id'])}, Year {int(row['release_year'])}")
+        tracker.logger.info(f"    Total genres: {int(genre_count)}")
+    
+    return developer_rows
 
 def expand_to_publisher_rows(games_genres_df, tracker):
     """Expand to publisher rows (one row per game-publisher pair)."""
@@ -612,8 +807,30 @@ def main():
         logger.info("="*80)
         logger.info(f"Loaded {len(genres_df):,} games with genre data")
         
+        # Step 5: Join games with genre vectors
+        games_genres_df = join_games_genres(games_df, genres_df, tracker)
+        
+        logger.info("")
+        logger.info("="*80)
+        logger.info("Step 5 Complete - Games joined with genre vectors")
+        logger.info("="*80)
+        logger.info(f"Final dataset: {len(games_genres_df):,} games with complete data")
+        
+        # Step 6: Expand to developer rows
+        logger.info("")
+        logger.info("-"*80)
+        logger.info("STEP 6: Expand to developer rows")
+        logger.info("-"*80)
+        dev_rows_df = expand_to_developer_rows(games_genres_df, tracker)
+        
+        logger.info("")
+        logger.info("="*80)
+        logger.info("Step 6 Complete - Expanded to developer rows")
+        logger.info("="*80)
+        logger.info(f"Created {len(dev_rows_df):,} developer-game rows")
+        
         # Future steps will be called here:
-        # games_genres_df = join_games_genres(games_df, genres_df, tracker)
+        # pub_rows_df = expand_to_publisher_rows(games_genres_df, tracker)
         # ... etc
         
         # Final summary
