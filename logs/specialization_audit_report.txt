@@ -1,12 +1,12 @@
 ================================================================================
 GENRE SPECIALIZATION DATASET - AUDIT REPORT
 ================================================================================
-Generated: 2026-02-12 14:55:57
+Generated: 2026-02-12 15:43:09
 
 VERIFICATION SUMMARY
 --------------------------------------------------------------------------------
-Total verification checks: 5
-Checks passed: 5
+Total verification checks: 18
+Checks passed: 18
 Checks failed: 0
 Warnings issued: 0
 
@@ -26,3 +26,42 @@ DETAILED CHECKS
 
 [PASS] Step 2: Year range reasonable
       Years span 1970 to 2026
+
+[PASS] Step 3: Developer ID match rate
+      100.0% of developer IDs found in lookup table
+
+[PASS] Step 3: Publisher ID match rate
+      100.0% of publisher IDs found in lookup table
+
+[PASS] Step 3: Games with valid developer IDs
+      197,325 games have valid developer IDs (0 affected)
+
+[PASS] Step 3: Games with valid publisher IDs
+      197,325 games have valid publisher IDs (0 affected)
+
+[PASS] Step 3: Data cleaning successful
+      Cleaned 0 dev IDs and 0 pub IDs
+
+[PASS] Step 4: Has game_id column
+      game_id column present
+
+[PASS] Step 4: Has title column
+      title column present
+
+[PASS] Step 4: Has 231 genre columns
+      Found 231 genre columns (expected 231)
+
+[PASS] Step 4: Genre vectors loaded
+      197,325 games loaded from CSV
+
+[PASS] Step 4: No NULL values in genre columns
+      No NULL values
+
+[PASS] Step 4: All genre columns numeric
+      All genre columns are numeric
+
+[PASS] Step 4: Genre values in [0,1] range
+      Values range from 0 to 1
+
+[PASS] Step 4: Most games have genres
+      197,321 games have at least one genre (4 have none)

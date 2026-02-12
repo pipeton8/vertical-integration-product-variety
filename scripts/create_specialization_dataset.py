@@ -311,13 +311,220 @@ def extract_games_from_db(db_path, tracker):
 
 def validate_ids(games_df, developers_df, publishers_df, tracker):
     """Validate extracted IDs against lookup tables."""
-    # To be implemented in Step 3
-    pass
+    tracker.log_step_start(3, "Validate extracted IDs against lookup tables")
+    
+    # Get all unique developer and publisher IDs from games
+    all_dev_ids = set()
+    all_pub_ids = set()
+    
+    for dev_list in games_df['developer_ids']:
+        if isinstance(dev_list, list):
+            all_dev_ids.update(dev_list)
+    
+    for pub_list in games_df['publisher_ids']:
+        if isinstance(pub_list, list):
+            all_pub_ids.update(pub_list)
+    
+    tracker.logger.info(f"Found {len(all_dev_ids):,} unique developer IDs in games")
+    tracker.logger.info(f"Found {len(all_pub_ids):,} unique publisher IDs in games")
+    
+    # Get IDs from lookup tables
+    lookup_dev_ids = set(developers_df['id'].values)
+    lookup_pub_ids = set(publishers_df['id'].values)
+    
+    tracker.logger.info(f"Found {len(lookup_dev_ids):,} developer IDs in lookup table")
+    tracker.logger.info(f"Found {len(lookup_pub_ids):,} publisher IDs in lookup table")
+    
+    # Find unmatched IDs
+    unmatched_devs = all_dev_ids - lookup_dev_ids
+    unmatched_pubs = all_pub_ids - lookup_pub_ids
+    
+    # Verification checks
+    dev_match_rate = (len(all_dev_ids) - len(unmatched_devs)) / len(all_dev_ids) if all_dev_ids else 1.0
+    pub_match_rate = (len(all_pub_ids) - len(unmatched_pubs)) / len(all_pub_ids) if all_pub_ids else 1.0
+    
+    tracker.add_check(3, "Developer ID match rate",
+                     dev_match_rate >= 0.95,  # Fail if <95% match
+                     f"{dev_match_rate*100:.1f}% of developer IDs found in lookup table")
+    
+    tracker.add_check(3, "Publisher ID match rate",
+                     pub_match_rate >= 0.95,  # Fail if <95% match
+                     f"{pub_match_rate*100:.1f}% of publisher IDs found in lookup table")
+    
+    # Report unmatched IDs
+    if unmatched_devs:
+        tracker.add_warning(3, f"{len(unmatched_devs):,} orphaned developer IDs not in lookup table")
+        if len(unmatched_devs) <= 10:
+            tracker.logger.info(f"  Orphaned developer IDs: {sorted(list(unmatched_devs))}")
+        else:
+            sample = sorted(list(unmatched_devs))[:10]
+            tracker.logger.info(f"  Sample orphaned developer IDs: {sample}...")
+    
+    if unmatched_pubs:
+        tracker.add_warning(3, f"{len(unmatched_pubs):,} orphaned publisher IDs not in lookup table")
+        if len(unmatched_pubs) <= 10:
+            tracker.logger.info(f"  Orphaned publisher IDs: {sorted(list(unmatched_pubs))}")
+        else:
+            sample = sorted(list(unmatched_pubs))[:10]
+            tracker.logger.info(f"  Sample orphaned publisher IDs: {sample}...")
+    
+    # Count games affected by unmatched IDs
+    games_with_bad_devs = 0
+    games_with_bad_pubs = 0
+    
+    for _, row in games_df.iterrows():
+        if isinstance(row['developer_ids'], list):
+            if any(dev_id in unmatched_devs for dev_id in row['developer_ids']):
+                games_with_bad_devs += 1
+        
+        if isinstance(row['publisher_ids'], list):
+            if any(pub_id in unmatched_pubs for pub_id in row['publisher_ids']):
+                games_with_bad_pubs += 1
+    
+    tracker.add_check(3, "Games with valid developer IDs",
+                     games_with_bad_devs < len(games_df) * 0.1,  # Fail if >10% affected
+                     f"{len(games_df) - games_with_bad_devs:,} games have valid developer IDs ({games_with_bad_devs:,} affected)")
+    
+    tracker.add_check(3, "Games with valid publisher IDs",
+                     games_with_bad_pubs < len(games_df) * 0.1,  # Fail if >10% affected
+                     f"{len(games_df) - games_with_bad_pubs:,} games have valid publisher IDs ({games_with_bad_pubs:,} affected)")
+    
+    # Clean the data: filter out unmatched IDs from lists
+    tracker.logger.info("")
+    tracker.logger.info("Cleaning data: removing unmatched IDs from game records...")
+    
+    def clean_id_list(id_list, valid_ids):
+        if not isinstance(id_list, list):
+            return []
+        return [id for id in id_list if id in valid_ids]
+    
+    games_df['developer_ids'] = games_df['developer_ids'].apply(
+        lambda x: clean_id_list(x, lookup_dev_ids))
+    games_df['publisher_ids'] = games_df['publisher_ids'].apply(
+        lambda x: clean_id_list(x, lookup_pub_ids))
+    
+    # Report final counts after cleaning
+    final_no_devs = games_df['developer_ids'].apply(lambda x: len(x) == 0).sum()
+    final_no_pubs = games_df['publisher_ids'].apply(lambda x: len(x) == 0).sum()
+    
+    tracker.logger.info(f"After cleaning: {len(games_df) - final_no_devs:,} games retain developers")
+    tracker.logger.info(f"After cleaning: {len(games_df) - final_no_pubs:,} games retain publishers")
+    
+    tracker.add_check(3, "Data cleaning successful",
+                     True,
+                     f"Cleaned {len(unmatched_devs)} dev IDs and {len(unmatched_pubs)} pub IDs")
+    
+    return games_df
 
 def load_genre_vectors(genre_path, tracker):
     """Load and validate genre vectors."""
-    # To be implemented in Step 4
-    pass
+    tracker.log_step_start(4, "Load and validate genre vectors")
+    
+    # First, load a sample to verify structure
+    tracker.logger.info("Loading sample (100 rows) to verify structure...")
+    sample_df = pd.read_csv(genre_path, nrows=100)
+    
+    tracker.logger.info(f"Sample shape: {sample_df.shape}")
+    tracker.logger.info(f"Columns: {list(sample_df.columns[:5])}... (showing first 5)")
+    
+    # Verify expected columns
+    expected_cols = ['game_id', 'title'] + [f'genre_{i}' for i in range(231)]
+    has_game_id = 'game_id' in sample_df.columns
+    has_title = 'title' in sample_df.columns
+    
+    tracker.add_check(4, "Has game_id column", has_game_id, 
+                     "game_id column present" if has_game_id else "game_id column MISSING")
+    tracker.add_check(4, "Has title column", has_title,
+                     "title column present" if has_title else "title column MISSING")
+    
+    # Count genre columns
+    genre_cols = [col for col in sample_df.columns if col.startswith('genre_')]
+    tracker.add_check(4, "Has 231 genre columns", len(genre_cols) == 231,
+                     f"Found {len(genre_cols)} genre columns (expected 231)")
+    
+    # Now load full file
+    tracker.logger.info("")
+    tracker.logger.info("Loading full genre vectors file...")
+    df = pd.read_csv(genre_path)
+    
+    tracker.logger.info(f"Loaded {len(df):,} games with genre vectors")
+    tracker.add_check(4, "Genre vectors loaded", True,
+                     f"{len(df):,} games loaded from CSV")
+    
+    # Check for NULL values in genre columns
+    null_counts = df[genre_cols].isnull().sum()
+    total_nulls = null_counts.sum()
+    
+    tracker.add_check(4, "No NULL values in genre columns",
+                     total_nulls == 0,
+                     f"{total_nulls:,} NULL values found" if total_nulls > 0 else "No NULL values")
+    
+    if total_nulls > 0:
+        tracker.add_warning(4, f"Found {total_nulls:,} NULL values in genre columns")
+        cols_with_nulls = null_counts[null_counts > 0]
+        if len(cols_with_nulls) <= 5:
+            for col, count in cols_with_nulls.items():
+                tracker.logger.info(f"  {col}: {count} NULLs")
+    
+    # Verify all genre columns are numeric
+    non_numeric_cols = []
+    for col in genre_cols:
+        if not pd.api.types.is_numeric_dtype(df[col]):
+            non_numeric_cols.append(col)
+    
+    tracker.add_check(4, "All genre columns numeric",
+                     len(non_numeric_cols) == 0,
+                     f"All genre columns are numeric" if len(non_numeric_cols) == 0 
+                     else f"{len(non_numeric_cols)} non-numeric columns")
+    
+    # Verify values are binary (0 or 1)
+    tracker.logger.info("")
+    tracker.logger.info("Checking if genre values are binary...")
+    
+    # Check min and max values across all genre columns
+    genre_data = df[genre_cols]
+    min_val = genre_data.min().min()
+    max_val = genre_data.max().max()
+    
+    is_binary = (min_val >= 0 and max_val <= 1)
+    
+    tracker.add_check(4, "Genre values in [0,1] range",
+                     is_binary,
+                     f"Values range from {min_val} to {max_val}")
+    
+    # Check if values are actually 0 or 1 (not fractions)
+    unique_vals = set()
+    for col in genre_cols[:10]:  # Sample first 10 columns
+        unique_vals.update(df[col].unique())
+    
+    tracker.logger.info(f"Sample unique values from genre columns: {sorted(unique_vals)[:20]}")
+    
+    # Sample check: display 5 random rows with their genre sums
+    tracker.logger.info("")
+    tracker.logger.info("Sample records with genre counts:")
+    sample_rows = df.sample(min(5, len(df)), random_state=42)
+    
+    for idx, row in sample_rows.iterrows():
+        genre_sum = row[genre_cols].sum()
+        tracker.logger.info(f"  Game {row['game_id']}: {row['title'][:50]}...")
+        tracker.logger.info(f"    Total genres: {int(genre_sum)}")
+    
+    # Overall statistics
+    tracker.logger.info("")
+    tracker.logger.info("Genre Statistics:")
+    genre_sums = df[genre_cols].sum(axis=1)
+    tracker.logger.info(f"  Avg genres per game: {genre_sums.mean():.2f}")
+    tracker.logger.info(f"  Min genres per game: {int(genre_sums.min())}")
+    tracker.logger.info(f"  Max genres per game: {int(genre_sums.max())}")
+    tracker.logger.info(f"  Games with 0 genres: {(genre_sums == 0).sum():,}")
+    
+    # Check for games with no genres
+    no_genres = (genre_sums == 0).sum()
+    tracker.add_check(4, "Most games have genres",
+                     no_genres < len(df) * 0.1,  # Fail if >10% have no genres
+                     f"{len(df) - no_genres:,} games have at least one genre ({no_genres:,} have none)")
+    
+    return df
 
 def join_games_genres(games_df, genres_df, tracker):
     """Join games with genre vectors."""
@@ -386,10 +593,27 @@ def main():
         logger.info("="*80)
         logger.info(f"Extracted {len(games_df):,} games")
         
+        # Step 3: Validate IDs against lookup tables
+        developers_df = pd.read_csv(DEVELOPERS_CSV)
+        publishers_df = pd.read_csv(PUBLISHERS_CSV)
+        games_df = validate_ids(games_df, developers_df, publishers_df, tracker)
+        
+        logger.info("")
+        logger.info("="*80)
+        logger.info("Step 3 Complete - IDs validated against lookup tables")
+        logger.info("="*80)
+        
+        # Step 4: Load and validate genre vectors
+        genres_df = load_genre_vectors(GENRE_VECTORS_PATH, tracker)
+        
+        logger.info("")
+        logger.info("="*80)
+        logger.info("Step 4 Complete - Genre vectors loaded and validated")
+        logger.info("="*80)
+        logger.info(f"Loaded {len(genres_df):,} games with genre data")
+        
         # Future steps will be called here:
-        # developers_df = pd.read_csv(DEVELOPERS_CSV)
-        # publishers_df = pd.read_csv(PUBLISHERS_CSV)
-        # validate_ids(games_df, developers_df, publishers_df, tracker)
+        # games_genres_df = join_games_genres(games_df, genres_df, tracker)
         # ... etc
         
         # Final summary
