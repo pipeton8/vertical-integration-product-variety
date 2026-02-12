@@ -18,6 +18,12 @@
 *.smcl
 *.dta.bak
 
+# Large processed data files (use data/raw/ for source data instead)
+data/processed_developer_data.dta
+data/processed_publisher_data.dta
+data/developer_game_data.csv
+data/publisher_game_data.csv
+
 # Python
 __pycache__/
 *.py[cod]
