@@ -845,19 +845,363 @@ def expand_to_publisher_rows(games_genres_df, tracker):
     return publisher_rows
 
 def compute_developer_shares(dev_rows_df, developers_df, tracker):
-    """Compute and validate genre shares by developer-year."""
-    # To be implemented in Step 8
-    pass
+    """
+    Step 8: Compute and validate genre shares by developer-year.
+    
+    Output columns: developer_id, Developer, Year, genre_0_share..genre_230_share
+    """
+    tracker.logger.info("Computing developer-year genre shares...")
+    
+    genre_cols = [f'genre_{i}' for i in range(231)]
+    
+    # Aggregate to developer-year means
+    grouped = (
+        dev_rows_df
+        .groupby(['developer_id', 'release_year'], as_index=False)[genre_cols]
+        .mean()
+    )
+    
+    # Join developer names
+    dev_names = developers_df[['id', 'name']].rename(columns={'id': 'developer_id', 'name': 'Developer'})
+    dev_shares = grouped.merge(dev_names, on='developer_id', how='left')
+    
+    # Rename and order columns
+    share_cols = [f'{col}_share' for col in genre_cols]
+    dev_shares = dev_shares.rename(columns={'release_year': 'Year'})
+    dev_shares = dev_shares.rename(columns={col: f'{col}_share' for col in genre_cols})
+    dev_shares = dev_shares[['developer_id', 'Developer', 'Year'] + share_cols]
+    
+    # Verification checks
+    tracker.logger.info("")
+    tracker.add_check(
+        8,
+        "Developer-year rows created",
+        len(dev_shares) > 0,
+        f"{len(dev_shares):,} developer-year rows created"
+    )
+    
+    # Check share ranges
+    min_share = dev_shares[share_cols].min().min()
+    max_share = dev_shares[share_cols].max().max()
+    in_range = (min_share >= -1e-9) and (max_share <= 1 + 1e-9)
+    tracker.add_check(
+        8,
+        "Genre shares in [0,1] range",
+        in_range,
+        f"Range: {min_share:.6f} to {max_share:.6f}"
+    )
+    
+    # Check for NULLs in shares
+    null_shares = dev_shares[share_cols].isna().sum().sum()
+    tracker.add_check(
+        8,
+        "No NULL genre shares",
+        null_shares == 0,
+        "No NULL shares" if null_shares == 0 else f"Found {int(null_shares)} NULL shares"
+    )
+    
+    # Check completeness of developer IDs
+    input_devs = set(dev_rows_df['developer_id'].unique())
+    output_devs = set(dev_shares['developer_id'].unique())
+    missing_devs = input_devs - output_devs
+    tracker.add_check(
+        8,
+        "All developers retained",
+        len(missing_devs) == 0,
+        "All developers retained" if len(missing_devs) == 0 else f"Missing {len(missing_devs)} developers"
+    )
+    
+    # Check for missing developer names and fill with placeholder
+    missing_mask = dev_shares['Developer'].isna() | (dev_shares['Developer'].astype(str).str.strip() == "")
+    missing_names = int(missing_mask.sum())
+    if missing_names > 0:
+        missing_ids = dev_shares.loc[missing_mask, 'developer_id'].dropna().unique().tolist()
+        missing_sample = ", ".join(str(int(x)) for x in missing_ids[:10])
+        tracker.add_warning(
+            8,
+            f"Missing {missing_names} developer names; sample IDs: {missing_sample}"
+        )
+        dev_shares.loc[missing_mask, 'Developer'] = dev_shares.loc[missing_mask, 'developer_id'].apply(
+            lambda x: f"Unknown {int(x)}"
+        )
+    
+    tracker.add_check(
+        8,
+        "Developer names present or filled",
+        True,
+        "All developer names present" if missing_names == 0 else f"Filled {missing_names} missing names"
+    )
+    
+    # Manual spot check for one developer-year
+    sample_row = dev_shares.head(1)
+    if not sample_row.empty:
+        sample_dev = int(sample_row.iloc[0]['developer_id'])
+        sample_year = int(sample_row.iloc[0]['Year'])
+        sample_source = dev_rows_df[
+            (dev_rows_df['developer_id'] == sample_dev) &
+            (dev_rows_df['release_year'] == sample_year)
+        ][genre_cols]
+        manual_means = sample_source.mean()
+        computed_means = sample_row[share_cols].iloc[0]
+        max_diff = (manual_means.values - computed_means.values).max()
+        tracker.add_check(
+            8,
+            "Manual mean spot check",
+            abs(max_diff) < 1e-9,
+            f"Max diff: {max_diff:.10f} for developer {sample_dev}, year {sample_year}"
+        )
+    
+    tracker.logger.info("")
+    tracker.logger.info(f"Developer-year pairs: {dev_shares[['developer_id', 'Year']].drop_duplicates().shape[0]:,}")
+    
+    return dev_shares
 
 def compute_publisher_shares(pub_rows_df, publishers_df, tracker):
-    """Compute and validate genre shares by publisher-year."""
-    # To be implemented in Step 9
-    pass
+    """
+    Step 9: Compute and validate genre shares by publisher-year.
+    
+    Output columns: publisher_id, Publisher, Year, genre_0_share..genre_230_share
+    """
+    tracker.logger.info("Computing publisher-year genre shares...")
+    
+    genre_cols = [f'genre_{i}' for i in range(231)]
+    
+    # Aggregate to publisher-year means
+    grouped = (
+        pub_rows_df
+        .groupby(['publisher_id', 'release_year'], as_index=False)[genre_cols]
+        .mean()
+    )
+    
+    # Join publisher names
+    pub_names = publishers_df[['id', 'name']].rename(columns={'id': 'publisher_id', 'name': 'Publisher'})
+    pub_shares = grouped.merge(pub_names, on='publisher_id', how='left')
+    
+    # Rename and order columns
+    share_cols = [f'{col}_share' for col in genre_cols]
+    pub_shares = pub_shares.rename(columns={'release_year': 'Year'})
+    pub_shares = pub_shares.rename(columns={col: f'{col}_share' for col in genre_cols})
+    pub_shares = pub_shares[['publisher_id', 'Publisher', 'Year'] + share_cols]
+    
+    # Verification checks
+    tracker.logger.info("")
+    tracker.add_check(
+        9,
+        "Publisher-year rows created",
+        len(pub_shares) > 0,
+        f"{len(pub_shares):,} publisher-year rows created"
+    )
+    
+    # Check share ranges
+    min_share = pub_shares[share_cols].min().min()
+    max_share = pub_shares[share_cols].max().max()
+    in_range = (min_share >= -1e-9) and (max_share <= 1 + 1e-9)
+    tracker.add_check(
+        9,
+        "Genre shares in [0,1] range",
+        in_range,
+        f"Range: {min_share:.6f} to {max_share:.6f}"
+    )
+    
+    # Check for NULLs in shares
+    null_shares = pub_shares[share_cols].isna().sum().sum()
+    tracker.add_check(
+        9,
+        "No NULL genre shares",
+        null_shares == 0,
+        "No NULL shares" if null_shares == 0 else f"Found {int(null_shares)} NULL shares"
+    )
+    
+    # Check completeness of publisher IDs
+    input_pubs = set(pub_rows_df['publisher_id'].unique())
+    output_pubs = set(pub_shares['publisher_id'].unique())
+    missing_pubs = input_pubs - output_pubs
+    tracker.add_check(
+        9,
+        "All publishers retained",
+        len(missing_pubs) == 0,
+        "All publishers retained" if len(missing_pubs) == 0 else f"Missing {len(missing_pubs)} publishers"
+    )
+    
+    # Check for missing publisher names and fill with placeholder
+    missing_mask = pub_shares['Publisher'].isna() | (pub_shares['Publisher'].astype(str).str.strip() == "")
+    missing_names = int(missing_mask.sum())
+    if missing_names > 0:
+        missing_ids = pub_shares.loc[missing_mask, 'publisher_id'].dropna().unique().tolist()
+        missing_sample = ", ".join(str(int(x)) for x in missing_ids[:10])
+        tracker.add_warning(
+            9,
+            f"Missing {missing_names} publisher names; sample IDs: {missing_sample}"
+        )
+        pub_shares.loc[missing_mask, 'Publisher'] = pub_shares.loc[missing_mask, 'publisher_id'].apply(
+            lambda x: f"Unknown {int(x)}"
+        )
+    
+    tracker.add_check(
+        9,
+        "Publisher names present or filled",
+        True,
+        "All publisher names present" if missing_names == 0 else f"Filled {missing_names} missing names"
+    )
+    
+    # Manual spot check for one publisher-year
+    sample_row = pub_shares.head(1)
+    if not sample_row.empty:
+        sample_pub = int(sample_row.iloc[0]['publisher_id'])
+        sample_year = int(sample_row.iloc[0]['Year'])
+        sample_source = pub_rows_df[
+            (pub_rows_df['publisher_id'] == sample_pub) &
+            (pub_rows_df['release_year'] == sample_year)
+        ][genre_cols]
+        manual_means = sample_source.mean()
+        computed_means = sample_row[share_cols].iloc[0]
+        max_diff = (manual_means.values - computed_means.values).max()
+        tracker.add_check(
+            9,
+            "Manual mean spot check",
+            abs(max_diff) < 1e-9,
+            f"Max diff: {max_diff:.10f} for publisher {sample_pub}, year {sample_year}"
+        )
+    
+    tracker.logger.info("")
+    tracker.logger.info(f"Publisher-year pairs: {pub_shares[['publisher_id', 'Year']].drop_duplicates().shape[0]:,}")
+    
+    return pub_shares
 
 def create_output_files(dev_shares_df, pub_shares_df, tracker):
-    """Create final output datasets."""
-    # To be implemented in Step 10
-    pass
+    """
+    Step 10: Create final output datasets.
+    
+    Export to CSV with columns: id, Name, Year, genre_0_share..genre_230_share
+    Sorted by year, then id.
+    """
+    tracker.logger.info("Creating final output datasets...")
+    
+    # Process developer shares
+    tracker.logger.info("Processing developer shares...")
+    dev_out = dev_shares_df.sort_values(['Year', 'developer_id']).copy()
+    dev_cols_final = ['developer_id', 'Developer', 'Year'] + [f'genre_{i}_share' for i in range(231)]
+    dev_out = dev_out[dev_cols_final]
+    
+    # Export developer file
+    dev_file = OUTPUT_DIR / "developer_genre_shares.csv"
+    dev_out.to_csv(dev_file, index=False)
+    tracker.logger.info(f"Exported: {dev_file}")
+    
+    # Process publisher shares
+    tracker.logger.info("Processing publisher shares...")
+    pub_out = pub_shares_df.sort_values(['Year', 'publisher_id']).copy()
+    pub_cols_final = ['publisher_id', 'Publisher', 'Year'] + [f'genre_{i}_share' for i in range(231)]
+    pub_out = pub_out[pub_cols_final]
+    
+    # Export publisher file
+    pub_file = OUTPUT_DIR / "publisher_genre_shares.csv"
+    pub_out.to_csv(pub_file, index=False)
+    tracker.logger.info(f"Exported: {pub_file}")
+    
+    # Verification checks
+    tracker.logger.info("")
+    
+    # Developer file checks
+    tracker.logger.info("Verifying developer file...")
+    dev_file_size = dev_file.stat().st_size / 1024 / 1024  # MB
+    tracker.add_check(
+        10,
+        "Developer file created",
+        dev_file.exists(),
+        f"File size: {dev_file_size:.2f} MB, {len(dev_out):,} rows"
+    )
+    
+    dev_headers_expected = ['developer_id', 'Developer', 'Year'] + [f'genre_{i}_share' for i in range(231)]
+    dev_headers_match = list(dev_out.columns) == dev_headers_expected
+    tracker.add_check(
+        10,
+        "Developer headers correct",
+        dev_headers_match,
+        f"Columns: {len(dev_out.columns)} (expected {len(dev_headers_expected)})"
+    )
+    
+    dev_year_min = dev_out['Year'].min()
+    dev_year_max = dev_out['Year'].max()
+    dev_year_valid = (dev_year_min >= 1970) and (dev_year_max <= 2026)
+    tracker.add_check(
+        10,
+        "Developer year range valid",
+        dev_year_valid,
+        f"Range: {int(dev_year_min)}-{int(dev_year_max)}"
+    )
+    
+    dev_dups = dev_out.duplicated(subset=['developer_id', 'Year']).sum()
+    tracker.add_check(
+        10,
+        "No duplicate developer-year pairs",
+        dev_dups == 0,
+        "No duplicates" if dev_dups == 0 else f"Found {dev_dups} duplicates"
+    )
+    
+    # Publisher file checks
+    tracker.logger.info("Verifying publisher file...")
+    pub_file_size = pub_file.stat().st_size / 1024 / 1024  # MB
+    tracker.add_check(
+        10,
+        "Publisher file created",
+        pub_file.exists(),
+        f"File size: {pub_file_size:.2f} MB, {len(pub_out):,} rows"
+    )
+    
+    pub_headers_expected = ['publisher_id', 'Publisher', 'Year'] + [f'genre_{i}_share' for i in range(231)]
+    pub_headers_match = list(pub_out.columns) == pub_headers_expected
+    tracker.add_check(
+        10,
+        "Publisher headers correct",
+        pub_headers_match,
+        f"Columns: {len(pub_out.columns)} (expected {len(pub_headers_expected)})"
+    )
+    
+    pub_year_min = pub_out['Year'].min()
+    pub_year_max = pub_out['Year'].max()
+    pub_year_valid = (pub_year_min >= 1970) and (pub_year_max <= 2026)
+    tracker.add_check(
+        10,
+        "Publisher year range valid",
+        pub_year_valid,
+        f"Range: {int(pub_year_min)}-{int(pub_year_max)}"
+    )
+    
+    pub_dups = pub_out.duplicated(subset=['publisher_id', 'Year']).sum()
+    tracker.add_check(
+        10,
+        "No duplicate publisher-year pairs",
+        pub_dups == 0,
+        "No duplicates" if pub_dups == 0 else f"Found {pub_dups} duplicates"
+    )
+    
+    # Sample rows
+    tracker.logger.info("")
+    tracker.logger.info("Developer file sample rows:")
+    tracker.logger.info("  First 3:")
+    for idx, row in dev_out.head(3).iterrows():
+        tracker.logger.info(
+            f"    Dev {int(row['developer_id'])}: {row['Developer']}, Year {int(row['Year'])}"
+        )
+    tracker.logger.info("  Last 3:")
+    for idx, row in dev_out.tail(3).iterrows():
+        tracker.logger.info(
+            f"    Dev {int(row['developer_id'])}: {row['Developer']}, Year {int(row['Year'])}"
+        )
+    
+    tracker.logger.info("")
+    tracker.logger.info("Publisher file sample rows:")
+    tracker.logger.info("  First 3:")
+    for idx, row in pub_out.head(3).iterrows():
+        tracker.logger.info(
+            f"    Pub {int(row['publisher_id'])}: {row['Publisher']}, Year {int(row['Year'])}"
+        )
+    tracker.logger.info("  Last 3:")
+    for idx, row in pub_out.tail(3).iterrows():
+        tracker.logger.info(
+            f"    Pub {int(row['publisher_id'])}: {row['Publisher']}, Year {int(row['Year'])}"
+        )
 
 # =============================================================================
 # MAIN EXECUTION
@@ -949,6 +1293,44 @@ def main():
         logger.info("Step 7 Complete - Expanded to publisher rows")
         logger.info("="*80)
         logger.info(f"Created {len(pub_rows_df):,} publisher-game rows")
+        
+        # Step 8: Compute developer-year genre shares
+        logger.info("")
+        logger.info("-"*80)
+        logger.info("STEP 8: Compute developer-year genre shares")
+        logger.info("-"*80)
+        dev_shares_df = compute_developer_shares(dev_rows_df, developers_df, tracker)
+        
+        logger.info("")
+        logger.info("="*80)
+        logger.info("Step 8 Complete - Developer-year genre shares computed")
+        logger.info("="*80)
+        logger.info(f"Created {len(dev_shares_df):,} developer-year rows")
+        
+        # Step 9: Compute publisher-year genre shares
+        logger.info("")
+        logger.info("-"*80)
+        logger.info("STEP 9: Compute publisher-year genre shares")
+        logger.info("-"*80)
+        pub_shares_df = compute_publisher_shares(pub_rows_df, publishers_df, tracker)
+        
+        logger.info("")
+        logger.info("="*80)
+        logger.info("Step 9 Complete - Publisher-year genre shares computed")
+        logger.info("="*80)
+        logger.info(f"Created {len(pub_shares_df):,} publisher-year rows")
+        
+        # Step 10: Create final output datasets
+        logger.info("")
+        logger.info("-"*80)
+        logger.info("STEP 10: Create final output datasets")
+        logger.info("-"*80)
+        create_output_files(dev_shares_df, pub_shares_df, tracker)
+        
+        logger.info("")
+        logger.info("="*80)
+        logger.info("Step 10 Complete - Final datasets exported to CSV")
+        logger.info("="*80)
         
         # Future steps will be called here:
         # ... etc
