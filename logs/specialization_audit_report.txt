@@ -1,12 +1,12 @@
 ================================================================================
 GENRE SPECIALIZATION DATASET - AUDIT REPORT
 ================================================================================
-Generated: 2026-02-12 15:57:30
+Generated: 2026-02-13 10:49:17
 
 VERIFICATION SUMMARY
 --------------------------------------------------------------------------------
-Total verification checks: 27
-Checks passed: 27
+Total verification checks: 32
+Checks passed: 32
 Checks failed: 0
 Warnings issued: 0
 
@@ -92,3 +92,18 @@ DETAILED CHECKS
 
 [PASS] Step 6: Duplicates handled
       Removed 6 duplicate rows
+
+[PASS] Step 7: Publisher rows created
+      244,995 publisher-game rows created
+
+[PASS] Step 7: No NULL publisher IDs
+      No NULL publisher IDs
+
+[PASS] Step 7: No NULL years in publisher rows
+      No NULL years
+
+[PASS] Step 7: Positive publisher IDs
+      All publisher IDs are positive (min: 1)
+
+[PASS] Step 7: Duplicates handled
+      Removed 22 duplicate rows
