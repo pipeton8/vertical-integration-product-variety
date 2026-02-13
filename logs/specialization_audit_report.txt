@@ -1,12 +1,12 @@
 ================================================================================
 GENRE SPECIALIZATION DATASET - AUDIT REPORT
 ================================================================================
-Generated: 2026-02-13 10:49:17
+Generated: 2026-02-13 12:01:31
 
 VERIFICATION SUMMARY
 --------------------------------------------------------------------------------
-Total verification checks: 32
-Checks passed: 32
+Total verification checks: 52
+Checks passed: 52
 Checks failed: 0
 Warnings issued: 0
 
@@ -107,3 +107,63 @@ DETAILED CHECKS
 
 [PASS] Step 7: Duplicates handled
       Removed 22 duplicate rows
+
+[PASS] Step 8: Developer-year rows created
+      80,332 developer-year rows created
+
+[PASS] Step 8: Genre shares in [0,1] range
+      Range: 0.000000 to 1.000000
+
+[PASS] Step 8: No NULL genre shares
+      No NULL shares
+
+[PASS] Step 8: All developers retained
+      All developers retained
+
+[PASS] Step 8: Developer names present or filled
+      All developer names present
+
+[PASS] Step 8: Manual mean spot check
+      Max diff: 0.0000000000 for developer 1, year 1988
+
+[PASS] Step 9: Publisher-year rows created
+      77,398 publisher-year rows created
+
+[PASS] Step 9: Genre shares in [0,1] range
+      Range: 0.000000 to 1.000000
+
+[PASS] Step 9: No NULL genre shares
+      No NULL shares
+
+[PASS] Step 9: All publishers retained
+      All publishers retained
+
+[PASS] Step 9: Publisher names present or filled
+      All publisher names present
+
+[PASS] Step 9: Manual mean spot check
+      Max diff: 0.0000000000 for publisher 1, year 1988
+
+[PASS] Step 10: Developer file created
+      File size: 74.09 MB, 80,332 rows
+
+[PASS] Step 10: Developer headers correct
+      Columns: 234 (expected 234)
+
+[PASS] Step 10: Developer year range valid
+      Range: 1970-2026
+
+[PASS] Step 10: No duplicate developer-year pairs
+      No duplicates
+
+[PASS] Step 10: Publisher file created
+      File size: 73.71 MB, 77,398 rows
+
+[PASS] Step 10: Publisher headers correct
+      Columns: 234 (expected 234)
+
+[PASS] Step 10: Publisher year range valid
+      Range: 1970-2026
+
+[PASS] Step 10: No duplicate publisher-year pairs
+      No duplicates

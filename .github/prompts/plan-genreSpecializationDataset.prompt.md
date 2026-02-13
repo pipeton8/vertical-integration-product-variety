@@ -91,7 +91,7 @@
 ### 10. Create final output datasets
     - Developer dataset: columns = `developer_id`, `Developer`, `Year`, `genre_0_share`, ..., `genre_230_share`
     - Publisher dataset: columns = `publisher_id`, `Publisher`, `Year`, `genre_0_share`, ..., `genre_230_share`
-    - Both: sort by year, then name
+    - Both: sort by year, then id.
     - Export to `developer_genre_shares.csv` and `publisher_genre_shares.csv`
     - **Verification**:
       - Check file sizes and row counts
