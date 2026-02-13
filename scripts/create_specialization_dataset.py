@@ -732,9 +732,117 @@ def expand_to_developer_rows(games_genres_df, tracker):
     return developer_rows
 
 def expand_to_publisher_rows(games_genres_df, tracker):
-    """Expand to publisher rows (one row per game-publisher pair)."""
-    # To be implemented in Step 7
-    pass
+    """
+    Step 7: Expand each game to multiple rows, one per publisher
+    
+    Each row will have: game_id, publisher_id, release_year, genre_0..genre_230
+    """
+    tracker.logger.info("Expanding to publisher rows...")
+    
+    # Filter to games that have publishers and release year
+    games_with_pubs = games_genres_df[
+        (games_genres_df['publisher_ids'].apply(lambda x: isinstance(x, list) and len(x) > 0)) &
+        (games_genres_df['release_year'].notna())
+    ].copy()
+    
+    tracker.logger.info(f"Games with publishers and year: {len(games_with_pubs):,}")
+    
+    # Explode the publisher_ids list
+    tracker.logger.info("Exploding publisher_ids list...")
+    expanded = games_with_pubs.explode('publisher_ids')
+    tracker.logger.info(f"After explosion: {len(expanded):,} rows")
+    
+    # Rename publisher_ids to publisher_id (now scalar)
+    expanded = expanded.rename(columns={'publisher_ids': 'publisher_id'})
+    
+    # Select final columns: publisher_id, release_year, genre_0..genre_230
+    genre_cols = [f'genre_{i}' for i in range(231)]
+    final_cols = ['game_id', 'publisher_id', 'release_year'] + genre_cols
+    publisher_rows = expanded[final_cols].copy()
+    
+    # Verification checks
+    tracker.logger.info("")
+    tracker.add_check(
+        7,
+        "Publisher rows created",
+        len(publisher_rows) > 0,
+        f"{len(publisher_rows):,} publisher-game rows created"
+    )
+    
+    null_pubs = publisher_rows['publisher_id'].isna().sum()
+    tracker.add_check(
+        7,
+        "No NULL publisher IDs",
+        null_pubs == 0,
+        f"No NULL publisher IDs" if null_pubs == 0 else f"Found {null_pubs} NULL publisher IDs"
+    )
+    
+    null_years = publisher_rows['release_year'].isna().sum()
+    tracker.add_check(
+        7,
+        "No NULL years in publisher rows",
+        null_years == 0,
+        f"No NULL years" if null_years == 0 else f"Found {null_years} NULL years"
+    )
+    
+    # Check publisher ID types and ranges
+    min_pub_id = publisher_rows['publisher_id'].min()
+    max_pub_id = publisher_rows['publisher_id'].max()
+    unique_pubs = publisher_rows['publisher_id'].nunique()
+    
+    tracker.logger.info("")
+    tracker.logger.info(f"Publisher ID range: {min_pub_id} to {max_pub_id}")
+    tracker.logger.info(f"Unique publishers: {unique_pubs:,}")
+    
+    tracker.add_check(
+        7,
+        "Positive publisher IDs",
+        min_pub_id > 0,
+        f"All publisher IDs are positive (min: {min_pub_id})"
+    )
+    
+    # Check for duplicates (game_id, publisher_id, year)
+    dup_mask = publisher_rows.duplicated(subset=['game_id', 'publisher_id', 'release_year'], keep=False)
+    dup_count = dup_mask.sum()
+    
+    if dup_count > 0:
+        tracker.logger.info("")
+        tracker.logger.info(f"Found {dup_count} duplicate rows. Investigating...")
+        dup_rows = publisher_rows[dup_mask].sort_values(['game_id', 'publisher_id', 'release_year'])
+        tracker.logger.info("Sample duplicates:")
+        for idx, row in dup_rows.head(6).iterrows():
+            tracker.logger.info(
+                f"  Game {int(row['game_id'])}, Publisher {int(row['publisher_id'])}, Year {int(row['release_year'])}"
+            )
+        
+        # Remove duplicates, keeping first occurrence
+        tracker.logger.info("")
+        tracker.logger.info("Removing duplicate rows (keeping first occurrence)...")
+        publisher_rows = publisher_rows.drop_duplicates(
+            subset=['game_id', 'publisher_id', 'release_year'],
+            keep='first'
+        )
+        tracker.logger.info(f"After removing duplicates: {len(publisher_rows):,} rows")
+    
+    tracker.add_check(
+        7,
+        "Duplicates handled",
+        True,
+        f"Removed {dup_count} duplicate rows" if dup_count > 0 else "No duplicates found"
+    )
+    
+    # Sample check
+    tracker.logger.info("")
+    tracker.logger.info("Sample publisher rows:")
+    sample = publisher_rows.head(3)
+    for idx, row in sample.iterrows():
+        genre_count = row[[f'genre_{i}' for i in range(231)]].sum()
+        tracker.logger.info(
+            f"  Game {int(row['game_id'])}, Publisher {int(row['publisher_id'])}, Year {int(row['release_year'])}"
+        )
+        tracker.logger.info(f"    Total genres: {int(genre_count)}")
+    
+    return publisher_rows
 
 def compute_developer_shares(dev_rows_df, developers_df, tracker):
     """Compute and validate genre shares by developer-year."""
@@ -829,8 +937,20 @@ def main():
         logger.info("="*80)
         logger.info(f"Created {len(dev_rows_df):,} developer-game rows")
         
+        # Step 7: Expand to publisher rows
+        logger.info("")
+        logger.info("-"*80)
+        logger.info("STEP 7: Expand to publisher rows")
+        logger.info("-"*80)
+        pub_rows_df = expand_to_publisher_rows(games_genres_df, tracker)
+        
+        logger.info("")
+        logger.info("="*80)
+        logger.info("Step 7 Complete - Expanded to publisher rows")
+        logger.info("="*80)
+        logger.info(f"Created {len(pub_rows_df):,} publisher-game rows")
+        
         # Future steps will be called here:
-        # pub_rows_df = expand_to_publisher_rows(games_genres_df, tracker)
         # ... etc
         
         # Final summary
