@@ -21,6 +21,9 @@
 # Large processed data files (use data/raw/ for source data instead)
 data/
 
+# Logs
+logs/
+
 # Python
 __pycache__/
 *.py[cod]
