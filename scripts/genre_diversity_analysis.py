@@ -8,6 +8,7 @@ This script produces:
 - Two CSV datasets containing the points used in the figures
 """
 
+import argparse
 import json
 import re
 import sqlite3
@@ -154,12 +155,81 @@ def write_game_counts_table(dev_counts, pub_counts, output_path):
     return output_path
 
 
-def calculate_diversity_metrics(df, entity_label):
+def detect_genre_columns(df):
+    """
+    Detect all genre share columns in the dataframe.
+    
+    Returns:
+        list: Column names matching pattern 'category_X_genre_Y_share'
+        dict: Mapping of {(category_id, genre_id): column_name}
+    """
     genre_cols = [
         col
         for col in df.columns
-        if col.startswith("genre_") and col.endswith("_share")
+        if col.startswith("category_") and "genre_" in col and col.endswith("_share")
     ]
+    
+    col_mapping = {}
+    for col in genre_cols:
+        # Parse: category_10_genre_14_share -> (10, 14)
+        parts = col.replace("category_", "").replace("_genre_", "_").replace("_share", "").split("_")
+        if len(parts) == 2:
+            try:
+                category_id = int(parts[0])
+                genre_id = int(parts[1])
+                col_mapping[(category_id, genre_id)] = col
+            except ValueError:
+                continue
+    
+    return genre_cols, col_mapping
+
+
+def filter_genre_columns(genre_cols, col_mapping, included_categories=None, excluded_genres=None):
+    """
+    Filter genre columns based on category and genre inclusion/exclusion criteria.
+    
+    Args:
+        genre_cols: List of all genre column names from detect_genre_columns()
+        col_mapping: Mapping {(category_id, genre_id): column_name} from detect_genre_columns()
+        included_categories: Set of category IDs to include. If None, include all.
+        excluded_genres: Set of genre IDs to exclude. If None, exclude none.
+    
+    Returns:
+        list: Filtered list of genre column names that match the criteria
+    """
+    if included_categories is None and excluded_genres is None:
+        # No filtering - return all columns
+        return genre_cols
+    
+    filtered_cols = []
+    for (category_id, genre_id), col_name in col_mapping.items():
+        # Check if category should be included
+        if included_categories is not None and category_id not in included_categories:
+            continue
+        
+        # Check if genre should be excluded
+        if excluded_genres is not None and genre_id in excluded_genres:
+            continue
+        
+        filtered_cols.append(col_name)
+    
+    return filtered_cols
+
+
+def calculate_diversity_metrics(df, entity_label, genre_cols=None):
+    """
+    Calculate diversity metrics for entities based on genre shares.
+    
+    Args:
+        df: DataFrame with genre share columns
+        entity_label: 'developer' or 'publisher'
+        genre_cols: List of genre columns to use. If None, detect all automatically.
+    """
+    if genre_cols is None:
+        genre_cols, _ = detect_genre_columns(df)
+    
+    if not genre_cols:
+        raise ValueError("No genre columns found in dataframe")
 
     diversity_metrics = []
 
@@ -293,181 +363,243 @@ def build_combined_dataset(series_by_threshold, entity_label, x_col, metrics):
     return pd.concat(frames, ignore_index=True)
 
 
-print("=" * 80)
-print("Genre Diversity Analysis")
-print("=" * 80)
-
-print("\n1. Loading genre-share data...")
-developer_data = pd.read_csv(DATA_DIR / "developer_genre_shares.csv")
-publisher_data = pd.read_csv(DATA_DIR / "publisher_genre_shares.csv")
-print(f"   Developer Data Shape: {developer_data.shape}")
-print(f"   Publisher Data Shape: {publisher_data.shape}")
-
-print("\n2. Extracting game counts from database...")
-developer_counts = extract_company_game_counts("developers", "developer")
-publisher_counts = extract_company_game_counts("publishers", "publisher")
-print(f"   Developer total rows: {len(developer_counts)}")
-print(f"   Publisher total rows: {len(publisher_counts)}")
-
-dev_count_summary = summarize_game_counts(developer_counts)
-pub_count_summary = summarize_game_counts(publisher_counts)
-
-table_path = BASE_DIR / "tables" / "summary statistics" / "game_counts_by_type.tex"
-write_game_counts_table(developer_counts, publisher_counts, table_path)
-print(f"   Saved: {table_path}")
-
-print("\n3. Calculating diversity metrics...")
-developer_diversity = calculate_diversity_metrics(developer_data, "developer")
-publisher_diversity = calculate_diversity_metrics(publisher_data, "publisher")
-print(f"   Developer diversity rows: {len(developer_diversity)}")
-print(f"   Publisher diversity rows: {len(publisher_diversity)}")
-
-print("\n3a. Quick checks and summary snapshots...")
-print("   Developer game counts summary:")
-print(dev_count_summary.to_string(index=False))
-print("   Publisher game counts summary:")
-print(pub_count_summary.to_string(index=False))
-
-for label, df in [("Developer", developer_diversity), ("Publisher", publisher_diversity)]:
-    diversity_min = df["diversity"].min()
-    diversity_max = df["diversity"].max()
-    entropy_norm_min = df["entropy_norm"].min()
-    entropy_norm_max = df["entropy_norm"].max()
-
-    print(f"   {label} diversity (1-HHI) range: {diversity_min:.4f} to {diversity_max:.4f}")
-    print(f"   {label} entropy range: {entropy_norm_min:.4f} to {entropy_norm_max:.4f}")
-
-    if diversity_min < 0 or diversity_max > 1:
-        print(f"   WARNING: {label} diversity outside [0, 1]")
-    if entropy_norm_min < 0:
-        print(f"   WARNING: {label} entropy below 0")
-
-print("\n4. Computing yearly averages and firm-age profiles...")
-
-def build_threshold_series(diversity_df, counts_df, entity_label):
-    series_by_threshold = {}
-    age_by_threshold = {}
-
-    for threshold in THRESHOLDS:
-        filtered = diversity_df
-        if threshold is not None:
-            filtered = filtered.merge(
-                counts_df[[f"{entity_label}_id", "total_games"]],
-                on=f"{entity_label}_id",
-                how="left",
-            )
-            filtered = filtered[filtered["total_games"] >= threshold]
-
-        yearly_summary = compute_yearly_averages(filtered, entity_label)
-        age_summary = compute_age_profiles(filtered, entity_label)
-        series_by_threshold[threshold] = yearly_summary
-        age_by_threshold[threshold] = age_summary
-
-    return series_by_threshold, age_by_threshold
+def parse_arguments():
+    """Parse command-line arguments for genre filtering."""
+    parser = argparse.ArgumentParser(
+        description="Analyze genre diversity for developers and publishers"
+    )
+    parser.add_argument(
+        "--categories",
+        type=str,
+        default="1",
+        help="Comma-separated list of category IDs to include (default: 1 = Basic Genres)",
+    )
+    parser.add_argument(
+        "--exclude-genres",
+        type=str,
+        default="62,76,187",
+        help="Comma-separated list of genre IDs to exclude (default: 62,76,187)",
+    )
+    parser.add_argument(
+        "--all-genres",
+        action="store_true",
+        help="Include all categories and genres (ignores --categories and --exclude-genres)",
+    )
+    return parser.parse_args()
 
 
-dev_yearly_by_threshold, dev_age_by_threshold = build_threshold_series(
-    developer_diversity, developer_counts, "developer"
-)
-pub_yearly_by_threshold, pub_age_by_threshold = build_threshold_series(
-    publisher_diversity, publisher_counts, "publisher"
-)
+if __name__ == "__main__":
+    args = parse_arguments()
+    
+    # Parse category and genre filters
+    included_categories = set()
+    excluded_genres = set()
+    
+    if args.all_genres:
+        # No filtering - include all categories and genres
+        included_categories = None
+        excluded_genres = None
+        print("Running with ALL categories and genres (no filtering)")
+    else:
+        # Parse included categories
+        included_categories = set(int(c.strip()) for c in args.categories.split(","))
+        
+        # Parse excluded genres
+        excluded_genres = set(int(g.strip()) for g in args.exclude_genres.split(","))
+        
+        print(f"Using categories: {sorted(included_categories)}")
+        print(f"Excluding genres: {sorted(excluded_genres)}")
+    
+    print("\n" + "=" * 80)
+    print("Genre Diversity Analysis")
+    print("=" * 80)
 
-print("\n5. Creating diversity plots...")
+    print("\n1. Loading genre-share data...")
+    developer_data = pd.read_csv(DATA_DIR / "developer_genre_shares.csv")
+    publisher_data = pd.read_csv(DATA_DIR / "publisher_genre_shares.csv")
+    print(f"   Developer Data Shape: {developer_data.shape}")
+    print(f"   Publisher Data Shape: {publisher_data.shape}")
 
-plot_diversity_series(
-    dev_yearly_by_threshold,
-    "developer",
-    "Year",
-    "developer_diversity_yearly_norm.png",
-)
-plot_diversity_series(
-    pub_yearly_by_threshold,
-    "publisher",
-    "Year",
-    "publisher_diversity_yearly_norm.png",
-)
+    print("\n2. Extracting game counts from database...")
+    developer_counts = extract_company_game_counts("developers", "developer")
+    publisher_counts = extract_company_game_counts("publishers", "publisher")
+    print(f"   Developer total rows: {len(developer_counts)}")
+    print(f"   Publisher total rows: {len(publisher_counts)}")
 
-plot_diversity_series(
-    dev_age_by_threshold,
-    "developer",
-    "Age",
-    "developer_diversity_age_norm.png",
-)
-plot_diversity_series(
-    pub_age_by_threshold,
-    "publisher",
-    "Age",
-    "publisher_diversity_age_norm.png",
-)
+    dev_count_summary = summarize_game_counts(developer_counts)
+    pub_count_summary = summarize_game_counts(publisher_counts)
 
-print("\n6. Creating developer vs publisher comparisons...")
-for threshold in COMPARE_THRESHOLDS:
-    label = "all" if threshold is None else f"min_games_{threshold}"
-    label_text = "All firms" if threshold is None else f">= {threshold} games"
-    dev_yearly = dev_yearly_by_threshold[threshold]
-    pub_yearly = pub_yearly_by_threshold[threshold]
-    dev_age = dev_age_by_threshold[threshold]
-    pub_age = pub_age_by_threshold[threshold]
+    table_path = BASE_DIR / "tables" / "summary statistics" / "game_counts_by_type.tex"
+    write_game_counts_table(developer_counts, publisher_counts, table_path)
+    print(f"   Saved: {table_path}")
 
-    plot_comparison_series(
-        dev_yearly,
-        pub_yearly,
+    print("\n2.5. Detecting and filtering genre columns...")
+    # Detect all genre columns
+    dev_genre_cols, dev_col_mapping = detect_genre_columns(developer_data)
+    pub_genre_cols, pub_col_mapping = detect_genre_columns(publisher_data)
+    print(f"   Developer: Detected {len(dev_genre_cols)} genre columns")
+    print(f"   Publisher: Detected {len(pub_genre_cols)} genre columns")
+    
+    # Apply filtering
+    dev_filtered_cols = filter_genre_columns(dev_genre_cols, dev_col_mapping, 
+                                             included_categories, excluded_genres)
+    pub_filtered_cols = filter_genre_columns(pub_genre_cols, pub_col_mapping, 
+                                             included_categories, excluded_genres)
+    print(f"   Developer: {len(dev_filtered_cols)} columns after filtering")
+    print(f"   Publisher: {len(pub_filtered_cols)} columns after filtering")
+
+    print("\n3. Calculating diversity metrics...")
+    developer_diversity = calculate_diversity_metrics(developer_data, "developer", dev_filtered_cols)
+    publisher_diversity = calculate_diversity_metrics(publisher_data, "publisher", pub_filtered_cols)
+    print(f"   Developer diversity rows: {len(developer_diversity)}")
+    print(f"   Publisher diversity rows: {len(publisher_diversity)}")
+
+    print("\n3a. Quick checks and summary snapshots...")
+    print("   Developer game counts summary:")
+    print(dev_count_summary.to_string(index=False))
+    print("   Publisher game counts summary:")
+    print(pub_count_summary.to_string(index=False))
+
+    for label, df in [("Developer", developer_diversity), ("Publisher", publisher_diversity)]:
+        diversity_min = df["diversity"].min()
+        diversity_max = df["diversity"].max()
+        entropy_norm_min = df["entropy_norm"].min()
+        entropy_norm_max = df["entropy_norm"].max()
+
+        print(f"   {label} diversity (1-HHI) range: {diversity_min:.4f} to {diversity_max:.4f}")
+        print(f"   {label} entropy range: {entropy_norm_min:.4f} to {entropy_norm_max:.4f}")
+
+        if diversity_min < 0 or diversity_max > 1:
+            print(f"   WARNING: {label} diversity outside [0, 1]")
+        if entropy_norm_min < 0:
+            print(f"   WARNING: {label} entropy below 0")
+
+    print("\n4. Computing yearly averages and firm-age profiles...")
+
+    def build_threshold_series(diversity_df, counts_df, entity_label):
+        series_by_threshold = {}
+        age_by_threshold = {}
+
+        for threshold in THRESHOLDS:
+            filtered = diversity_df
+            if threshold is not None:
+                filtered = filtered.merge(
+                    counts_df[[f"{entity_label}_id", "total_games"]],
+                    on=f"{entity_label}_id",
+                    how="left",
+                )
+                filtered = filtered[filtered["total_games"] >= threshold]
+
+            yearly_summary = compute_yearly_averages(filtered, entity_label)
+            age_summary = compute_age_profiles(filtered, entity_label)
+            series_by_threshold[threshold] = yearly_summary
+            age_by_threshold[threshold] = age_summary
+
+        return series_by_threshold, age_by_threshold
+
+
+    dev_yearly_by_threshold, dev_age_by_threshold = build_threshold_series(
+        developer_diversity, developer_counts, "developer"
+    )
+    pub_yearly_by_threshold, pub_age_by_threshold = build_threshold_series(
+        publisher_diversity, publisher_counts, "publisher"
+    )
+
+    print("\n5. Creating diversity plots...")
+
+    plot_diversity_series(
+        dev_yearly_by_threshold,
+        "developer",
         "Year",
-        f"comparison_diversity_yearly_norm_{label}.png",
-        label_text,
+        "developer_diversity_yearly_norm.png",
     )
-    plot_comparison_series(
-        dev_age,
-        pub_age,
+    plot_diversity_series(
+        pub_yearly_by_threshold,
+        "publisher",
+        "Year",
+        "publisher_diversity_yearly_norm.png",
+    )
+
+    plot_diversity_series(
+        dev_age_by_threshold,
+        "developer",
         "Age",
-        f"comparison_diversity_age_norm_{label}.png",
-        label_text,
+        "developer_diversity_age_norm.png",
+    )
+    plot_diversity_series(
+        pub_age_by_threshold,
+        "publisher",
+        "Age",
+        "publisher_diversity_age_norm.png",
     )
 
+    print("\n6. Creating developer vs publisher comparisons...")
+    for threshold in COMPARE_THRESHOLDS:
+        label = "all" if threshold is None else f"min_games_{threshold}"
+        label_text = "All firms" if threshold is None else f">= {threshold} games"
+        dev_yearly = dev_yearly_by_threshold[threshold]
+        pub_yearly = pub_yearly_by_threshold[threshold]
+        dev_age = dev_age_by_threshold[threshold]
+        pub_age = pub_age_by_threshold[threshold]
 
-print("\n7. Writing figure datasets...")
-year_dataset = pd.concat(
-    [
-        build_combined_dataset(
-            dev_yearly_by_threshold,
-            "developer",
+        plot_comparison_series(
+            dev_yearly,
+            pub_yearly,
             "Year",
-            ["diversity", "entropy_norm"],
-        ),
-        build_combined_dataset(
-            pub_yearly_by_threshold,
-            "publisher",
-            "Year",
-            ["diversity", "entropy_norm"],
-        ),
-    ],
-    ignore_index=True,
-)
-age_dataset = pd.concat(
-    [
-        build_combined_dataset(
-            dev_age_by_threshold,
-            "developer",
+            f"comparison_diversity_yearly_norm_{label}.png",
+            label_text,
+        )
+        plot_comparison_series(
+            dev_age,
+            pub_age,
             "Age",
-            ["diversity", "entropy_norm"],
-        ),
-        build_combined_dataset(
-            pub_age_by_threshold,
-            "publisher",
-            "Age",
-            ["diversity", "entropy_norm"],
-        ),
-    ],
-    ignore_index=True,
-)
-year_path = DATA_DIR / "diversity_year_norm.csv"
-age_path = DATA_DIR / "diversity_age_norm.csv"
-year_dataset.to_csv(year_path, index=False)
-age_dataset.to_csv(age_path, index=False)
-print(f"   Saved: {year_path}")
-print(f"   Saved: {age_path}")
+            f"comparison_diversity_age_norm_{label}.png",
+            label_text,
+        )
 
-print("\n" + "=" * 80)
-print("Analysis complete!")
-print("=" * 80)
+
+    print("\n7. Writing figure datasets...")
+    year_dataset = pd.concat(
+        [
+            build_combined_dataset(
+                dev_yearly_by_threshold,
+                "developer",
+                "Year",
+                ["diversity", "entropy_norm"],
+            ),
+            build_combined_dataset(
+                pub_yearly_by_threshold,
+                "publisher",
+                "Year",
+                ["diversity", "entropy_norm"],
+            ),
+        ],
+        ignore_index=True,
+    )
+    age_dataset = pd.concat(
+        [
+            build_combined_dataset(
+                dev_age_by_threshold,
+                "developer",
+                "Age",
+                ["diversity", "entropy_norm"],
+            ),
+            build_combined_dataset(
+                pub_age_by_threshold,
+                "publisher",
+                "Age",
+                ["diversity", "entropy_norm"],
+            ),
+        ],
+        ignore_index=True,
+    )
+    year_path = DATA_DIR / "diversity_year_norm.csv"
+    age_path = DATA_DIR / "diversity_age_norm.csv"
+    year_dataset.to_csv(year_path, index=False)
+    age_dataset.to_csv(age_path, index=False)
+    print(f"   Saved: {year_path}")
+    print(f"   Saved: {age_path}")
+
+    print("\n" + "=" * 80)
+    print("Analysis complete!")
+    print("=" * 80)
