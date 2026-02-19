@@ -169,17 +169,11 @@ def calculate_diversity_metrics(df, entity_label):
         if shares_sum <= 0:
             continue
 
-        non_zero_shares = shares[shares > 0]
-        hhi_raw = float(np.sum(shares ** 2))
-        entropy_raw = (
-            float(-np.sum(non_zero_shares * np.log(non_zero_shares)))
-            if len(non_zero_shares) > 0
-            else 0.0
-        )
-
         shares_norm = shares / shares_sum
         non_zero_norm = shares_norm[shares_norm > 0]
         hhi_norm = float(np.sum(shares_norm ** 2))
+        diversity = 1.0 - hhi_norm
+        
         entropy_norm = (
             float(-np.sum(non_zero_norm * np.log(non_zero_norm)))
             if len(non_zero_norm) > 0
@@ -196,10 +190,8 @@ def calculate_diversity_metrics(df, entity_label):
                 entity_label.capitalize(): row[entity_label.capitalize()],
                 "Year": year_value,
                 "shares_sum": shares_sum,
-                "num_genres": int(len(non_zero_shares)),
-                "hhi_raw": hhi_raw,
-                "entropy_raw": entropy_raw,
-                "hhi_norm": hhi_norm,
+                "num_genres": int(len(non_zero_norm)),
+                "diversity": diversity,
                 "entropy_norm": entropy_norm,
             }
         )
@@ -208,7 +200,7 @@ def calculate_diversity_metrics(df, entity_label):
 
 
 def compute_yearly_averages(diversity_df, entity_label):
-    metric_cols = ["hhi_raw", "entropy_raw", "hhi_norm", "entropy_norm"]
+    metric_cols = ["diversity", "entropy_norm"]
     summary = (
         diversity_df.groupby("Year")[metric_cols + [f"{entity_label}_id"]]
         .agg({**{m: "mean" for m in metric_cols}, f"{entity_label}_id": "count"})
@@ -225,7 +217,7 @@ def compute_age_profiles(diversity_df, entity_label):
         first_year
     )
     df_with_age = df_with_age[(df_with_age["Age"] >= 0) & (df_with_age["Age"] <= AGE_MAX)]
-    metric_cols = ["hhi_raw", "entropy_raw", "hhi_norm", "entropy_norm"]
+    metric_cols = ["diversity", "entropy_norm"]
     summary = (
         df_with_age.groupby("Age")[metric_cols]
         .mean()
@@ -235,21 +227,21 @@ def compute_age_profiles(diversity_df, entity_label):
     return summary
 
 
-def plot_diversity_series(series_by_threshold, entity_label, variant, x_col, fig_name):
+def plot_diversity_series(series_by_threshold, entity_label, x_col, fig_name):
     fig, axes = plt.subplots(1, 2, figsize=(16, 6))
     for threshold, df in series_by_threshold.items():
         label = "All" if threshold is None else f">= {threshold} games"
-        axes[0].plot(df[x_col], df[f"hhi_{variant}"], label=label, linewidth=2)
-        axes[1].plot(df[x_col], df[f"entropy_{variant}"], label=label, linewidth=2)
+        axes[0].plot(df[x_col], df["diversity"], label=label, linewidth=2)
+        axes[1].plot(df[x_col], df["entropy_norm"], label=label, linewidth=2)
 
     axes[0].set_xlabel(x_col)
-    axes[0].set_ylabel(f"Average HHI ({variant})")
-    axes[0].set_title(f"{entity_label.capitalize()} HHI ({variant})")
+    axes[0].set_ylabel("Average Diversity (1 - HHI)")
+    axes[0].set_title(f"{entity_label.capitalize()} Diversity (1 - HHI)")
     axes[0].grid(True, alpha=0.3)
 
     axes[1].set_xlabel(x_col)
-    axes[1].set_ylabel(f"Average entropy ({variant})")
-    axes[1].set_title(f"{entity_label.capitalize()} entropy ({variant})")
+    axes[1].set_ylabel("Average Entropy")
+    axes[1].set_title(f"{entity_label.capitalize()} Entropy")
     axes[1].grid(True, alpha=0.3)
 
     axes[0].legend(fontsize=9)
@@ -262,20 +254,20 @@ def plot_diversity_series(series_by_threshold, entity_label, variant, x_col, fig
     return fig_path
 
 
-def plot_comparison_series(dev_series, pub_series, variant, x_col, fig_name, label_suffix):
+def plot_comparison_series(dev_series, pub_series, x_col, fig_name, label_suffix):
     fig, axes = plt.subplots(1, 2, figsize=(16, 6))
-    axes[0].plot(dev_series[x_col], dev_series[f"hhi_{variant}"], label="Developers", linewidth=2)
-    axes[0].plot(pub_series[x_col], pub_series[f"hhi_{variant}"], label="Publishers", linewidth=2)
-    axes[1].plot(dev_series[x_col], dev_series[f"entropy_{variant}"], label="Developers", linewidth=2)
-    axes[1].plot(pub_series[x_col], pub_series[f"entropy_{variant}"], label="Publishers", linewidth=2)
+    axes[0].plot(dev_series[x_col], dev_series["diversity"], label="Developers", linewidth=2)
+    axes[0].plot(pub_series[x_col], pub_series["diversity"], label="Publishers", linewidth=2)
+    axes[1].plot(dev_series[x_col], dev_series["entropy_norm"], label="Developers", linewidth=2)
+    axes[1].plot(pub_series[x_col], pub_series["entropy_norm"], label="Publishers", linewidth=2)
 
     axes[0].set_xlabel(x_col)
-    axes[0].set_ylabel(f"Average HHI ({variant})")
-    axes[0].set_title(f"HHI comparison ({label_suffix})")
+    axes[0].set_ylabel("Average Diversity (1 - HHI)")
+    axes[0].set_title(f"Diversity comparison ({label_suffix})")
     axes[0].grid(True, alpha=0.3)
 
     axes[1].set_xlabel(x_col)
-    axes[1].set_ylabel(f"Average entropy ({variant})")
+    axes[1].set_ylabel("Average Entropy")
     axes[1].set_title(f"Entropy comparison ({label_suffix})")
     axes[1].grid(True, alpha=0.3)
 
@@ -337,24 +329,18 @@ print("   Publisher game counts summary:")
 print(pub_count_summary.to_string(index=False))
 
 for label, df in [("Developer", developer_diversity), ("Publisher", publisher_diversity)]:
-    hhi_norm_min = df["hhi_norm"].min()
-    hhi_norm_max = df["hhi_norm"].max()
+    diversity_min = df["diversity"].min()
+    diversity_max = df["diversity"].max()
     entropy_norm_min = df["entropy_norm"].min()
     entropy_norm_max = df["entropy_norm"].max()
-    hhi_raw_min = df["hhi_raw"].min()
-    hhi_raw_max = df["hhi_raw"].max()
-    entropy_raw_min = df["entropy_raw"].min()
-    entropy_raw_max = df["entropy_raw"].max()
 
-    print(f"   {label} HHI (normalized) range: {hhi_norm_min:.4f} to {hhi_norm_max:.4f}")
-    print(f"   {label} entropy (normalized) range: {entropy_norm_min:.4f} to {entropy_norm_max:.4f}")
-    print(f"   {label} HHI (raw) range: {hhi_raw_min:.4f} to {hhi_raw_max:.4f}")
-    print(f"   {label} entropy (raw) range: {entropy_raw_min:.4f} to {entropy_raw_max:.4f}")
+    print(f"   {label} diversity (1-HHI) range: {diversity_min:.4f} to {diversity_max:.4f}")
+    print(f"   {label} entropy range: {entropy_norm_min:.4f} to {entropy_norm_max:.4f}")
 
-    if hhi_norm_min < 0 or hhi_norm_max > 1:
-        print(f"   WARNING: {label} normalized HHI outside [0, 1]")
+    if diversity_min < 0 or diversity_max > 1:
+        print(f"   WARNING: {label} diversity outside [0, 1]")
     if entropy_norm_min < 0:
-        print(f"   WARNING: {label} normalized entropy below 0")
+        print(f"   WARNING: {label} entropy below 0")
 
 print("\n4. Computing yearly averages and firm-age profiles...")
 
@@ -392,14 +378,12 @@ print("\n5. Creating diversity plots...")
 plot_diversity_series(
     dev_yearly_by_threshold,
     "developer",
-    "norm",
     "Year",
     "developer_diversity_yearly_norm.png",
 )
 plot_diversity_series(
     pub_yearly_by_threshold,
     "publisher",
-    "norm",
     "Year",
     "publisher_diversity_yearly_norm.png",
 )
@@ -407,19 +391,17 @@ plot_diversity_series(
 plot_diversity_series(
     dev_age_by_threshold,
     "developer",
-    "norm",
     "Age",
     "developer_diversity_age_norm.png",
 )
 plot_diversity_series(
     pub_age_by_threshold,
     "publisher",
-    "norm",
     "Age",
     "publisher_diversity_age_norm.png",
 )
 
-print("\n6. Creating developer vs publisher comparisons (normalized)...")
+print("\n6. Creating developer vs publisher comparisons...")
 for threshold in COMPARE_THRESHOLDS:
     label = "all" if threshold is None else f"min_games_{threshold}"
     label_text = "All firms" if threshold is None else f">= {threshold} games"
@@ -431,7 +413,6 @@ for threshold in COMPARE_THRESHOLDS:
     plot_comparison_series(
         dev_yearly,
         pub_yearly,
-        "norm",
         "Year",
         f"comparison_diversity_yearly_norm_{label}.png",
         label_text,
@@ -439,7 +420,6 @@ for threshold in COMPARE_THRESHOLDS:
     plot_comparison_series(
         dev_age,
         pub_age,
-        "norm",
         "Age",
         f"comparison_diversity_age_norm_{label}.png",
         label_text,
@@ -453,13 +433,13 @@ year_dataset = pd.concat(
             dev_yearly_by_threshold,
             "developer",
             "Year",
-            ["hhi_norm", "entropy_norm"],
+            ["diversity", "entropy_norm"],
         ),
         build_combined_dataset(
             pub_yearly_by_threshold,
             "publisher",
             "Year",
-            ["hhi_norm", "entropy_norm"],
+            ["diversity", "entropy_norm"],
         ),
     ],
     ignore_index=True,
@@ -470,13 +450,13 @@ age_dataset = pd.concat(
             dev_age_by_threshold,
             "developer",
             "Age",
-            ["hhi_norm", "entropy_norm"],
+            ["diversity", "entropy_norm"],
         ),
         build_combined_dataset(
             pub_age_by_threshold,
             "publisher",
             "Age",
-            ["hhi_norm", "entropy_norm"],
+            ["diversity", "entropy_norm"],
         ),
     ],
     ignore_index=True,
